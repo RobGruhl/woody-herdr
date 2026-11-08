@@ -1,0 +1,10 @@
+{
+  "name": "Parchment",
+  "base": "light",
+  "overrides": {
+    "userMessageBackground": "#e4dacc",
+    "userMessageBackgroundHover": "#ece3d6",
+    "composerSidebarBackground": "#e9e0d2",
+    "bashMessageBackgroundColor": "#e8dad0"
+  }
+}

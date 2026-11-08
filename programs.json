@@ -1,0 +1,5 @@
+{
+  "programs": {
+    "claude": { "run": ["claude-herdr-app"] }
+  }
+}

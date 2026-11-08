@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+#
+# claude-herdr-app — start Claude Code from the Herdr desktop app with colours
+# that match Herdr's appearance.
+#
+# Claude Code's "auto" theme asks the terminal for its background. Herdr never
+# reports a light/dark change, and the walnut light theme reports the walnut
+# (a dark colour) even though the terminal shows parchment, so auto always
+# picks dark there. This reads Herdr's appearance at launch and, when it is
+# light, gives this one session Claude's light theme (--settings adds to
+# ~/.claude/settings.json without changing it, so Ghostty keeps "auto"). If
+# ~/.claude/themes/parchment.json exists it uses that instead: Claude's light
+# theme with the prompt band and the other near-white backgrounds in paper
+# shades, so they don't sit on the parchment as cold grey-white stripes.
+# A session keeps the colours it started with; restart it after toggling.
+#
+# install.sh copies this onto PATH at ~/.local/bin/claude-herdr-app and names
+# it as Claude's `run` in ~/.config/herdr-app/programs.json.
+
+set -uo pipefail
+
+settings="${HERDR_APP_HOME:-$HOME/.config/herdr-app}/settings.json"
+appearance=$(plutil -extract appearance raw -o - "$settings" 2>/dev/null)
+if [ -z "$appearance" ]; then
+  # No appearance in settings.json: Herdr follows macOS.
+  if defaults read -g AppleInterfaceStyle 2>/dev/null | grep -qi dark; then
+    appearance=dark
+  else
+    appearance=light
+  fi
+fi
+
+claude=claude
+
+if [ "$appearance" = "light" ]; then
+  theme=light
+  [ -f "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/themes/parchment.json" ] && theme=custom:parchment
+  exec "$claude" --settings "{\"theme\":\"$theme\"}" "$@"
+fi
+exec "$claude" "$@"
