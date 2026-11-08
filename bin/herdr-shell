@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+#
+# herdr-shell — the shell herdr-core starts in every new Herdr terminal, with
+# any Claude Code session markers the Herdr app inherited stripped out first.
+#
+# Claude Code marks every process it spawns (CLAUDE_CODE_CHILD_SESSION,
+# CLAUDE_CODE_SESSION_ID, CLAUDECODE and friends) so a Claude started by a
+# Claude knows it is a child: it then saves no transcript and stays out of
+# /resume. If the Herdr app itself is opened from a shell inside a Claude
+# session (`open -a Herdr`, or a session that relaunches it after an update),
+# those markers reach herdr-core and every pane shell, and each Claude you
+# start in Herdr quietly runs as a transcript-less child of that session
+# ("Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker").
+#
+# Herdr is a terminal, so nothing inside it is a real child of whatever
+# happened to open it. This drops every CLAUDE* variable and execs the login
+# shell, which puts back any the person sets in their own profile.
+#
+# install.sh copies this onto PATH at ~/.local/bin/herdr-shell and names it
+# as `shell` in ~/.config/herdr-core/config.toml. Changes there take effect
+# when herdr-core next starts (quit and reopen Herdr).
+
+set -u
+
+while IFS='=' read -r name _; do
+  case "$name" in
+    CLAUDECODE|CLAUDE_*) unset "$name" ;;
+  esac
+done < <(env)
+
+shell="${SHELL:-/bin/zsh}"
+exec "$shell" -l "$@"

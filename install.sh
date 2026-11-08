@@ -4,11 +4,13 @@
 #
 # Copies the paper-grain layout, its eight mods, three themes and the
 # background images into Herdr's home (~/.config/herdr-app, or
-# $HERDR_APP_HOME), installs the Claude launcher into ~/.local/bin, then
-# switches the window to the layout. The Claude Code parchment theme goes
-# into ~/.claude/themes (or $CLAUDE_CONFIG_DIR/themes). It never overwrites: if anything it
-# would write already exists, it stops before copying and lists what's there.
-# settings.json is yours, so the keys to add are printed, not written.
+# $HERDR_APP_HOME), installs the Claude launcher and the pane shell wrapper
+# into ~/.local/bin, then switches the window to the layout. The Claude Code
+# parchment theme goes into ~/.claude/themes (or $CLAUDE_CONFIG_DIR/themes),
+# and herdr-core's config.toml (~/.config/herdr-core) gets the shell wrapper
+# as its `shell`. It never overwrites: if anything it would write already
+# exists, it stops before copying and lists what's there. settings.json is
+# yours, so the keys to add are printed, not written.
 
 set -euo pipefail
 
@@ -16,6 +18,7 @@ src="$(cd "$(dirname "$0")" && pwd)"
 home="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 bin="$HOME/.local/bin"
 claude_themes="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/themes"
+core_config="${XDG_CONFIG_HOME:-$HOME/.config}/herdr-core/config.toml"
 
 if [ ! -d "$home" ]; then
   echo "No Herdr home at $home. Open the Herdr app once, then run this again." >&2
@@ -43,6 +46,7 @@ for f in "$src"/backgrounds/*; do targets+=("backgrounds/$(basename "$f")"); don
 taken=()
 for t in "${targets[@]}"; do [ -e "$home/$t" ] && taken+=("$home/$t"); done
 [ -e "$bin/claude-herdr-app" ] && taken+=("$bin/claude-herdr-app")
+[ -e "$bin/herdr-shell" ] && taken+=("$bin/herdr-shell")
 [ -e "$claude_themes/parchment.json" ] && taken+=("$claude_themes/parchment.json")
 if [ ${#taken[@]} -gt 0 ]; then
   echo "Stopped: these already exist, and install.sh never overwrites."
@@ -70,6 +74,7 @@ cp "$src/layouts/paper-grain.json" "$home/layouts/"
 
 mkdir -p "$bin"
 install -m 755 "$src/bin/claude-herdr-app" "$bin/claude-herdr-app"
+install -m 755 "$src/bin/herdr-shell" "$bin/herdr-shell"
 mkdir -p "$claude_themes"
 cp "$src/claude/themes/parchment.json" "$claude_themes/"
 
@@ -80,6 +85,20 @@ Herdr's + menu, add this inside its \"programs\":
 else
   cp "$src/programs.json" "$home/programs.json"
   programs="programs.json added: Herdr's + menu now starts Claude Code with claude-herdr-app."
+fi
+
+# herdr-core starts every new terminal with its configured shell. The wrapper
+# drops Claude Code session markers the app may have inherited, so Claude
+# sessions started in Herdr save their transcripts.
+if [ -e "$core_config" ]; then
+  core="herdr-core's $core_config exists, so it was left alone. For pane shells that drop
+inherited Claude Code session markers, add this line to it, then quit and reopen Herdr:
+    shell = [\"$bin/herdr-shell\"]"
+else
+  mkdir -p "$(dirname "$core_config")"
+  printf 'shell = ["%s"]\n' "$bin/herdr-shell" > "$core_config"
+  core="herdr-core config added: new Herdr terminals start through herdr-shell. It takes
+effect when herdr-core next starts: quit and reopen Herdr."
 fi
 
 for mod in "${mods[@]}"; do
@@ -110,6 +129,7 @@ cat <<EOF
 
 Installed into $home.
 $programs
+$core
 $notes
 Now add these to $home/settings.json (keep your other keys):
 

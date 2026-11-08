@@ -14,6 +14,10 @@
 # shades, so they don't sit on the parchment as cold grey-white stripes.
 # A session keeps the colours it started with; restart it after toggling.
 #
+# It also drops any Claude Code session markers the Herdr app inherited
+# (CLAUDE_CODE_CHILD_SESSION and friends; see bin/herdr-shell), so the session
+# saves its transcript even if Herdr was opened from inside another Claude.
+#
 # install.sh copies this onto PATH at ~/.local/bin/claude-herdr-app and names
 # it as Claude's `run` in ~/.config/herdr-app/programs.json.
 
@@ -29,6 +33,14 @@ if [ -z "$appearance" ]; then
     appearance=light
   fi
 fi
+
+# Markers Claude Code puts on its children; inherited through Herdr they would
+# make this session a transcript-less child of whatever opened the app.
+while IFS='=' read -r name _; do
+  case "$name" in
+    CLAUDECODE|CLAUDE_*) unset "$name" ;;
+  esac
+done < <(env)
 
 claude=claude
 

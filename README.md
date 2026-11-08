@@ -15,6 +15,7 @@ A look for the [Herdr](https://herdr.dev) desktop app: terminals on textured par
 - **Agents sorted by when you last looked.** The sidebar's Agents list puts the agent you've gone longest without opening at the top, whatever its state, so `cmd-]` (next agent) takes you round all of them. The one you're on keeps its place and drops to the bottom once you move to another. Herdr's Priority and Grouped by space sorts are still in the list's sort menu.
 - **Terminals above Agents.** The sidebar has no Spaces list. A Terminals list above Agents shows each space with no agent in it. Its + opens a new space with a plain shell; once you start Claude Code there, the space moves down to Agents. Hover a terminal row for an x that closes it.
 - **Claude Code in matching colours.** A launcher starts Claude Code with a parchment theme when Herdr is light: Claude's light theme with the prompt band, the bash-message rows and the other near-white backgrounds in paper shades, so they don't show as grey-white stripes on the paper.
+- **Claude Code sessions that save their transcripts.** Herdr's pane shells start through a small wrapper that drops the session markers Claude Code puts on its children. Without it, opening the Herdr app from a shell inside a Claude session makes every Claude started in Herdr a transcript-less child of that session ("Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker"). The launcher drops them too.
 - **Berkeley Mono Dotted** for terminals and panels, if you have it.
 
 Dark mode is Herdr's own graphite look plus the dark paper.
@@ -56,7 +57,7 @@ These steps start from a Mac with none of it installed. Herdr's macOS builds nee
    ./install.sh
    ```
 
-   The script copies the layout, the eight mods, the themes and the images into Herdr's home, installs the Claude launcher into `~/.local/bin` and the parchment theme into `~/.claude/themes`, adds `programs.json` so Herdr's + menu starts Claude Code through the launcher, and switches the window to the `paper-grain` layout. It never overwrites: if any file it would write already exists, it stops and lists them. At the end it says if `~/.local/bin` isn't on your PATH or Claude Code isn't installed. `ctrl-shift-l` cycles back to your previous layout.
+   The script copies the layout, the eight mods, the themes and the images into Herdr's home, installs the Claude launcher and the pane shell wrapper into `~/.local/bin` and the parchment theme into `~/.claude/themes`, adds `programs.json` so Herdr's + menu starts Claude Code through the launcher, writes `~/.config/herdr-core/config.toml` so new terminals start through the wrapper, and switches the window to the `paper-grain` layout. It never overwrites: if any file it would write already exists, it stops and lists them. At the end it says if `~/.local/bin` isn't on your PATH or Claude Code isn't installed. `ctrl-shift-l` cycles back to your previous layout.
 
 6. **Settings.** Open `~/.config/herdr-app/settings.json` (Herdr creates it) and add these, keeping your other keys:
 
@@ -68,7 +69,9 @@ These steps start from a Mac with none of it installed. Herdr's macOS builds nee
 
    Berkeley Mono is a paid font from [U.S. Graphics](https://usgraphics.com/products/berkeley-mono); install its files with Font Book. Without it, leave `font` and `ui_font` out to get Herdr's default font, or name any monospace font you have. `minimum_contrast` 1.0 is Herdr's default and the value the look was made with. Above 1.0, Herdr swaps terminal text colours it finds too faint for near-black or near-white.
 
-7. **Start Claude Code** from Herdr's + menu. Restart any Claude Code sessions that were already running, so they pick up the launcher.
+7. **Quit and reopen Herdr**, from the Dock, Spotlight or Finder rather than from a terminal. herdr-core reads `config.toml` when it starts, so the shell wrapper takes effect from then on.
+
+8. **Start Claude Code** from Herdr's + menu. Restart any Claude Code sessions that were already running, so they pick up the launcher.
 
 You only need Node and ffmpeg (`brew install node ffmpeg`) to re-render the textures, below.
 
@@ -83,7 +86,7 @@ H=~/.config/herdr-app
 for m in mods/*/; do mkdir -p "$H/$m"; cp "$m"mod.json "$H/$m"; cp "$m"* "$H/$m"; done   # mod.json first, as install.sh does
 cp themes/*.json "$H/themes/"; cp backgrounds/* "$H/backgrounds/"
 cp layouts/paper-grain.json layouts/paper-grain.png "$H/layouts/"
-cp bin/claude-herdr-app ~/.local/bin/; cp claude/themes/parchment.json ~/.claude/themes/
+cp bin/claude-herdr-app bin/herdr-shell ~/.local/bin/; cp claude/themes/parchment.json ~/.claude/themes/
 ```
 
 Copying the layout resets the paper texture and light-mode frame written in that file; `paper-sync` writes your choices back when Herdr reloads the layout. If you changed the layout's theme to oak or steel, set it again. Copy a mod folder only into a mod of the same name: Herdr's own `pane`, `files`, `changes`, `agents` and `workspace-chrome` stay as they are.
@@ -130,7 +133,8 @@ Give every new render a new file name and update the texture table in `mods/pape
 | `themes/walnut-parchment.json` | Light mode: a parchment background, walnut panels with cream text, Gruvbox Light terminal colours |
 | `themes/gruvbox-light.json`, `themes/gruvbox-light-steel.json` | The oak and steel light themes |
 | `backgrounds/` | Paper, parchment, walnut, oak and steel images, the paper/steel renderer, and the parchment grader |
-| `bin/claude-herdr-app` | Starts Claude Code with the parchment theme when Herdr is light (Claude's light theme if `parchment.json` isn't installed) |
+| `bin/claude-herdr-app` | Starts Claude Code with the parchment theme when Herdr is light (Claude's light theme if `parchment.json` isn't installed), without inherited Claude Code session markers |
+| `bin/herdr-shell` | The shell herdr-core starts in each new terminal: drops inherited Claude Code session markers, then execs the login shell |
 | `claude/themes/parchment.json` | The Claude Code theme the launcher uses in light mode: Claude's light theme with four backgrounds in paper shades |
 | `programs.json` | Makes Herdr's + menu start Claude Code with the launcher |
 | `RECIPE.md` | The full brief: every size, colour and behaviour, and what trips a rebuild up |
