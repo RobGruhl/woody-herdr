@@ -1,14 +1,14 @@
-// Keeps the paper-grain layout's backgrounds on the images for the current
+// Keeps a paper layout's backgrounds on the images for the current
 // look: behind the panes, the paper for the chosen texture and the appearance
 // (light or dark), and behind the frame the image for the light theme in use
 // (those themes' chrome is see-through so it shows). The textures are listed
 // for the paper-texture dropdown in shared("paper.textures"), and the choice
-// comes back in shared("paper.texture"). It sits in that layout as a floating
-// block that draws nothing, and rewrites the layout file when the look changes.
+// comes back in shared("paper.texture"). It sits in the layout as a floating
+// block that draws nothing, and rewrites the layout file when the look changes:
+// paper-grain's, or the one named in its props ({ "layout": "paper-desk" }).
 import { View, div } from "gpui-kit";
-import { settings, appHome, readTextFile, writeTextFile, shared, setShared } from "herdr";
+import { settings, appHome, readTextFile, writeTextFile, shared, setShared, props } from "herdr";
 
-const LAYOUT = "layouts/paper-grain.json";
 // ids are saved in shared.json: keep them when renaming. Each look is an image
 // path or a plain "#rrggbb" (the colours the papers are rendered on, rather
 // than the theme's background, which is walnut in some versions of the theme).
@@ -54,7 +54,7 @@ export default class PaperSync extends View {
   }
 
   async apply() {
-    const path = `${appHome()}/${LAYOUT}`;
+    const path = `${appHome()}/layouts/${props()?.layout ?? "paper-grain"}.json`;
     // A write is refused if the file changed since it was read; read again.
     for (let attempt = 0; attempt < 3; attempt++) {
       const text = await readTextFile(path);

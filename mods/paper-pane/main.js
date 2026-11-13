@@ -3,10 +3,19 @@
 // Shows the program's icon (the app's program table), the agent's name or
 // the terminal's title, the folder, and the agent's status; buttons split, zoom and close
 // this pane. Props from the app: { pane, terminal }. Click: focus the pane.
+//
+// With { "tape": true } in the header's props (the paper-desk layout) the header is
+// drawn on the paper instead: the name handwritten on a strip of masking tape, the
+// folder in pencil beside it, and the status as an ink mark (a turning ring, a
+// tick, a NEEDS YOU rubber stamp).
 
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { panes, props, run, theme, home } from "herdr";
+import { panes, props, run, theme, home, settings } from "herdr";
+
+const HAND = "Caveat Brush"; // fonts/CaveatBrush-Regular.ttf
+const TAPE = "#e6d6a2"; // the torn ends, tape-left.png and tape-right.png, are this colour
+const TAPE_INK = "#46352a";
 
 function icon(p, size, color) {
   if (!p?.icon) return null;
@@ -45,7 +54,45 @@ export default class Pane extends View {
         cx.stop_propagation();
         run(command, args);
       })
-      .child(svg(`mods/paper-pane/${icon}.svg`).size(14));
+      .child(svg(`mods/paper-pane/${icon}.svg`).size(icon.startsWith("ink/") ? 13 : 14));
+  }
+
+  // On the paper: masking tape, pencil and ink.
+  tape(t, p, name) {
+    const dark = settings().dark;
+    const ink = t.terminal_foreground ?? t.foreground;
+    const pencil = ink + "99";
+    const st = p.status;
+    const pane = p.pane;
+    const pic = icon(p.program, 14, TAPE_INK);
+    const button = (id, icon, command, args) => this.button({ dim: pencil, hover: ink + "1a", foreground: ink }, id, icon, command, args);
+    return h_flex()
+      .id(`pane-head-${pane}`)
+      .size_full()
+      .pl(8)
+      .pr(10)
+      .gap(9)
+      .items_center()
+      .border_b(1)
+      .border_color(ink + "24")
+      .on_hover((hovered, cx) => { this.hovered = hovered; cx.notify(); })
+      .on_click(() => run("pane.focus", { pane }))
+      .child(h_flex().flex_none().items_center().h(22)
+        .child(image("mods/paper-pane/tape-left.png").w(9).h(22).flex_none())
+        .child(h_flex().h(22).pl(3).pr(5).gap(6).items_center().bg(TAPE)
+          .when(Boolean(pic), (el) => el.child(pic))
+          .child(div().max_w(360).truncate().font_family(HAND).text_size(16).text_color(TAPE_INK).child(name)))
+        .child(image("mods/paper-pane/tape-right.png").w(9).h(22).flex_none()))
+      .child(div().flex_1().truncate().font_family(HAND).text_size(15).text_color(pencil).child(folder(p.cwd)))
+      .when(st === "working", el => el.child(svg("mods/paper-agents/ink-ring.svg").size(15).flex_none().text_color(ink).spin(1600)))
+      .when(st === "blocked", el => el.child(image(`mods/paper-agents/stamp-${dark ? "dark" : "light"}.png`).w(67).h(28).flex_none()))
+      .when(st === "done", el => el.child(svg("mods/paper-agents/ink-tick.svg").size(16).flex_none().text_color(dark ? t.done : t.ansi12)))
+      .when(this.hovered, el => el
+        // The brush-painted icons, in ink/.
+        .child(button(`ph-r-${pane}`, "ink/split-right", "pane.split", { direction: "right", pane }))
+        .child(button(`ph-d-${pane}`, "ink/split-down", "pane.split", { direction: "down", pane }))
+        .child(button(`ph-z-${pane}`, p.zoomed ? "ink/unzoom" : "ink/zoom", "pane.zoom", { pane }))
+        .child(button(`ph-x-${pane}`, "ink/x", "pane.close", { pane })));
   }
 
   render(cx) {
@@ -53,6 +100,7 @@ export default class Pane extends View {
     const p = this.me();
     if (!p) return div();
     const name = (p.program?.agent && told(p)) || ((p.program?.agent || p.program?.shell) && p.program.name) || p.title || p.program?.name || "shell";
+    if (props()?.tape) return this.tape(t, p, name);
     const pic = icon(p.program, 14, t.dim);
     const st = p.status;
     const pane = p.pane;

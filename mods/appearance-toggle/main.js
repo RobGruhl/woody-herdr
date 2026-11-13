@@ -2,9 +2,11 @@
 // between light and dark: the sun while dark (click for light), the moon while
 // light. Right-click hands appearance back to the system. Key commands:
 // "appearance-toggle.toggle" flips, "appearance-toggle.system" follows the system.
-import { View, div, svg } from "gpui-kit";
+// With { "ink": true } in its props (the paper-desk layout) the sun or moon is
+// brushed in ink on a strip of masking tape.
+import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { theme, settings, appHome, readTextFile, writeTextFile, nextCommand } from "herdr";
+import { theme, settings, appHome, readTextFile, writeTextFile, nextCommand, props } from "herdr";
 
 const ICONS = "mods/appearance-toggle";
 
@@ -23,6 +25,18 @@ export default class AppearanceToggle extends View {
     const t = theme();
     const dark = Boolean(settings().dark);
     const stop = (_e, cx) => cx.stop_propagation();
+    if (props()?.ink) {
+      return h_flex().size_full().items_center().justify_center().bg(t.chrome).border_b(1).border_color(t.border)
+        .child(h_flex().id("appearance-toggle").flex_none().items_center().h(22).opacity(0.88).hover((s) => s.opacity(1))
+          .on_mouse_down("left", stop)
+          .on_click((_e, cx) => this.flip(cx))
+          .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); this.followSystem(cx); })
+          // The tape's torn ends and colour are paper-pane's.
+          .child(image("mods/paper-pane/tape-left.png").w(9).h(22).flex_none())
+          .child(h_flex().h(22).px(1).items_center().bg("#e6d6a2").text_color("#46352a")
+            .child(svg(`${ICONS}/ink-${dark ? "sun" : "moon"}.svg`).size(16)))
+          .child(image("mods/paper-pane/tape-right.png").w(9).h(22).flex_none()));
+    }
     return h_flex().size_full().items_center().justify_center().bg(t.chrome).border_b(1).border_color(t.border)
       .child(div().id("appearance-toggle").size(26).flex_none().flex().items_center().justify_center().rounded(6)
         .text_color(t.dim).hover((s) => s.bg(t.hover).text_color(t.foreground))

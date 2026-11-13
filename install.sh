@@ -2,10 +2,11 @@
 #
 # install.sh — add the woody-herdr look to the Herdr desktop app.
 #
-# Copies the paper-grain layout, its eight mods, three themes and the
-# background images into Herdr's home (~/.config/herdr-app, or
-# $HERDR_APP_HOME), installs the Claude launcher and the pane shell wrapper
-# into ~/.local/bin, then switches the window to the layout. The Claude Code
+# Copies the paper-grain and paper-desk layouts, their ten mods, three themes,
+# the background images and two alert sounds into Herdr's home
+# (~/.config/herdr-app, or $HERDR_APP_HOME), installs the Claude launcher and
+# the pane shell wrapper into ~/.local/bin, then switches the window to
+# paper-grain. The Claude Code
 # parchment theme goes into ~/.claude/themes (or $CLAUDE_CONFIG_DIR/themes),
 # and herdr-core's config.toml (~/.config/herdr-core) gets the shell wrapper
 # as its `shell`. It never overwrites: if anything it would write already
@@ -37,9 +38,10 @@ if [ -z "$app" ]; then
   exit 1
 fi
 
-mods=(paper-sync paper-texture appearance-toggle clawdr-chrome paper-agents paper-pane paper-files paper-changes)
-targets=(layouts/paper-grain.json layouts/paper-grain.png
-         themes/walnut-parchment.json themes/gruvbox-light.json themes/gruvbox-light-steel.json)
+mods=(paper-sync paper-texture appearance-toggle clawdr-chrome paper-agents paper-pane paper-files paper-changes paper-tabs paper-status)
+targets=(layouts/paper-grain.json layouts/paper-grain.png layouts/paper-desk.json layouts/paper-desk.png
+         themes/walnut-parchment.json themes/gruvbox-light.json themes/gruvbox-light-steel.json
+         sounds/desk-bell.mp3 sounds/wood-knock.mp3)
 for mod in "${mods[@]}"; do targets+=("mods/$mod"); done
 for f in "$src"/backgrounds/*; do targets+=("backgrounds/$(basename "$f")"); done
 
@@ -56,21 +58,22 @@ if [ ${#taken[@]} -gt 0 ]; then
 fi
 
 # Images and themes first, so nothing that names them loads before they exist.
-mkdir -p "$home/backgrounds" "$home/themes" "$home/layouts" "$home/mods"
+mkdir -p "$home/backgrounds" "$home/themes" "$home/layouts" "$home/mods" "$home/sounds"
 cp "$src"/backgrounds/* "$home/backgrounds/"
 cp "$src"/themes/*.json "$home/themes/"
+cp "$src"/sounds/*.mp3 "$home/sounds/"
 
 # Each mod's mod.json goes in before its code: Herdr docks a new mod folder
 # that has no mod.json into the window as a panel the moment it sees it.
 for mod in "${mods[@]}"; do
   mkdir -p "$home/mods/$mod"
   cp "$src/mods/$mod/mod.json" "$home/mods/$mod/"
-  cp "$src/mods/$mod/"* "$home/mods/$mod/"
+  cp -R "$src/mods/$mod/"* "$home/mods/$mod/"   # -R: paper-pane has a fonts folder
 done
 
-# The layout last, once everything it uses is in place.
-cp "$src/layouts/paper-grain.png" "$home/layouts/"
-cp "$src/layouts/paper-grain.json" "$home/layouts/"
+# The layouts last, once everything they use is in place.
+cp "$src/layouts/paper-grain.png" "$src/layouts/paper-desk.png" "$home/layouts/"
+cp "$src/layouts/paper-grain.json" "$src/layouts/paper-desk.json" "$home/layouts/"
 
 mkdir -p "$bin"
 install -m 755 "$src/bin/claude-herdr-app" "$bin/claude-herdr-app"
@@ -146,4 +149,12 @@ Light/dark: the sun/moon button at the right end of the tab bar (right-click
 to follow macOS). Restart Claude Code sessions after switching so they pick up
 matching colours. Paper texture: the dropdown just left of the sun/moon
 button. ctrl-shift-l switches back to your previous layout.
+
+The paper-and-ink version is installed too. To switch to it:
+
+  herdr-app do layout.switch --name paper-desk
+
+Its two alert sounds are in $home/sounds; to use them, add to settings.json:
+
+  "sounds": { "enabled": true, "blocked": "sounds/desk-bell.mp3", "done": "sounds/wood-knock.mp3" }
 EOF

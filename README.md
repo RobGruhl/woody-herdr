@@ -20,6 +20,35 @@ A look for the [Herdr](https://herdr.dev) desktop app: terminals on textured par
 
 Dark mode is Herdr's own graphite look plus the dark paper.
 
+## The paper-and-ink version
+
+A second layout, `paper-desk`, is installed beside the first. It is the same window with everything on it made of paper, tape and ink:
+
+- **Agents and terminals are paper cards** lying on the walnut, typed in ink. A strip of coloured ink down a card's left edge says which space it belongs to, and the time since you last looked is a pencil note.
+- **Status is an ink mark.** A brushed ring turns while an agent works and darkens over its first quarter of an hour, a blue tick means done, a pencil circle means idle, and an agent that needs you gets a red NEEDS YOU rubber stamp.
+- **Pane headers are masking tape.** The agent's title is handwritten on a strip of tape stuck to the top of the paper, with the folder in pencil beside it and the same ink marks at the right.
+- **The tab bar is paper and tape.** Tabs are slips of paper; +, Files, Changes, the paper texture dropdown and the sun/moon are handwritten or brushed on tape, and the dropdown opens as a sheet of paper.
+- **What sits on the wood is printed.** The name Clawdr, the sidebar's headings and the status bar are set in a printer's small caps. Settings and Add machine at the foot of the sidebar are slips of paper.
+- **The icons are painted.** Twenty brush-and-ink icons (file, branch, layers, cog, search, the pane buttons and the rest) replace Herdr's line icons on the tape, the cards, the slips and the wood. gpt-image-2.6 painted them on one sheet, and `art/make-ink-icons.py` cut the sheet up and traced each one.
+- **Two alert sounds**, a counter bell for an agent that needs you and two knocks on wood for one that finished. They are optional: see below.
+
+It works in light and dark; the cards take the terminal's own paper and ink colours, and the tape stays cream.
+
+Switch to it, and back:
+
+```sh
+herdr-app do layout.switch --name paper-desk
+herdr-app do layout.switch --name paper-grain
+```
+
+To use the sounds, add this to `~/.config/herdr-app/settings.json` (it applies in every layout); `afplay ~/.config/herdr-app/sounds/desk-bell.mp3` plays one first:
+
+```json
+"sounds": { "enabled": true, "blocked": "sounds/desk-bell.mp3", "done": "sounds/wood-knock.mp3" }
+```
+
+`art/make-desk-art.py` redraws the marks, the stamp and the tape (it needs ImageMagick: `brew install imagemagick`), `art/make-ink-icons.py` re-cuts the icons from `art/ink-icons/ink-icons-sheet.png` (ImageMagick and potrace: `brew install potrace`), and `sounds/make-sounds.sh` remakes the sounds (ffmpeg).
+
 ## Install
 
 These steps start from a Mac with none of it installed. Herdr's macOS builds need Apple Silicon. Skip any step you've already done.
@@ -57,7 +86,7 @@ These steps start from a Mac with none of it installed. Herdr's macOS builds nee
    ./install.sh
    ```
 
-   The script copies the layout, the eight mods, the themes and the images into Herdr's home, installs the Claude launcher and the pane shell wrapper into `~/.local/bin` and the parchment theme into `~/.claude/themes`, adds `programs.json` so Herdr's + menu starts Claude Code through the launcher, writes `~/.config/herdr-core/config.toml` so new terminals start through the wrapper, and switches the window to the `paper-grain` layout. It never overwrites: if any file it would write already exists, it stops and lists them. At the end it says if `~/.local/bin` isn't on your PATH or Claude Code isn't installed. `ctrl-shift-l` cycles back to your previous layout.
+   The script copies the two layouts, the ten mods, the themes, the images and the sounds into Herdr's home, installs the Claude launcher and the pane shell wrapper into `~/.local/bin` and the parchment theme into `~/.claude/themes`, adds `programs.json` so Herdr's + menu starts Claude Code through the launcher, writes `~/.config/herdr-core/config.toml` so new terminals start through the wrapper, and switches the window to the `paper-grain` layout. It never overwrites: if any file it would write already exists, it stops and lists them. At the end it says if `~/.local/bin` isn't on your PATH or Claude Code isn't installed. `ctrl-shift-l` cycles back to your previous layout.
 
 6. **Settings.** Open `~/.config/herdr-app/settings.json` (Herdr creates it) and add these, keeping your other keys:
 
@@ -83,9 +112,10 @@ Pull, then copy what changed over Herdr's copies; `install.sh` won't overwrite, 
 
 ```sh
 H=~/.config/herdr-app
-for m in mods/*/; do mkdir -p "$H/$m"; cp "$m"mod.json "$H/$m"; cp "$m"* "$H/$m"; done   # mod.json first, as install.sh does
+for m in mods/*/; do mkdir -p "$H/$m"; cp "$m"mod.json "$H/$m"; cp -R "$m"* "$H/$m"; done   # mod.json first, as install.sh does
 cp themes/*.json "$H/themes/"; cp backgrounds/* "$H/backgrounds/"
-cp layouts/paper-grain.json layouts/paper-grain.png "$H/layouts/"
+cp layouts/paper-grain.json layouts/paper-grain.png layouts/paper-desk.json layouts/paper-desk.png "$H/layouts/"
+mkdir -p "$H/sounds"; cp sounds/*.mp3 "$H/sounds/"
 cp bin/claude-herdr-app bin/herdr-shell ~/.local/bin/; cp claude/themes/parchment.json ~/.claude/themes/
 ```
 
@@ -122,6 +152,12 @@ Give every new render a new file name and update the texture table in `mods/pape
 | Path | What it is |
 |---|---|
 | `layouts/paper-grain.json` | The layout: a copy of Herdr's `main` with the paper, the see-through frame, the toggle and the Clawdr header |
+| `layouts/paper-desk.json` | The paper-and-ink layout: the same window, with props that turn on the cards, tape and ink in the mods below, and `paper-tabs` and `paper-status` in place of Herdr's tab bar and status bar |
+| `mods/paper-tabs`, `mods/paper-status` | Herdr's tab bar as paper slips and tape labels, and its status bar in small caps (paper-desk only) |
+| `mods/paper-pane/fonts` | Caveat Brush (the handwriting) and IM Fell English SC (the small caps), both under the SIL Open Font License |
+| `sounds/` | The counter bell and the wood knock, and the script that synthesises them |
+| `art/make-desk-art.py` | Draws paper-desk's ink marks, rubber stamp, tape ends and brushed sun and moon |
+| `mods/paper-pane/ink`, `art/ink-icons/`, `art/make-ink-icons.py` | paper-desk's twenty painted icons as tintable SVGs, the sheet gpt-image-2.6 painted, and the script that cuts and traces it |
 | `mods/paper-sync` | Swaps the paper and frame images to match the chosen texture, the appearance and the light theme (an invisible floating block); holds the texture table |
 | `mods/paper-texture` | The paper texture dropdown |
 | `mods/appearance-toggle` | The sun/moon button |

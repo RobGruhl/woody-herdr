@@ -1,10 +1,28 @@
 // Agents by how long since you last looked at them, by priority, or grouped by space; in
 // priority, parents take their most urgent sub-agent's place and a viewed done
 // agent stays in Done until left.
+//
+// With { "cards": true } in its props (the paper-desk layout) each agent and terminal
+// is a paper card on the frame: typed in ink, a strip of coloured ink down its edge for
+// its space, how long in pencil, and the status as an ink mark: a ring that turns and
+// darkens the longer the agent works, a tick when it's done, a NEEDS YOU rubber stamp.
 
 import { View, div, image, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { agents, terminals, panes, focused, spaces, run, theme, shared, setShared, setAgentOrder, openOverlay, closeOverlay, props, window, layout } from "herdr";
+import { agents, terminals, panes, focused, spaces, run, theme, shared, setShared, setAgentOrder, openOverlay, closeOverlay, props, window, layout, settings } from "herdr";
+
+// The cards' type: headings in a printer's small caps, notes in a pencil hand.
+// Both fonts are in mods/paper-pane/fonts.
+const PRINT = "IM FELL English SC";
+const HAND = "Caveat Brush";
+// One ink per space, for the strip down a card's edge.
+const INKS = ["#a8432c", "#2f5f76", "#6f7b35", "#b0832d", "#7a4460", "#3d7567", "#8b5a3a", "#4f5c8c"];
+const inkOf = (id) => INKS[[...String(id ?? "")].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % INKS.length];
+// How dark a working agent's ring is: thin ink at first, full after a quarter of an hour.
+// Brush-painted icons for the cards (mods/paper-pane/ink), in place of Herdr's line icons.
+const INK = "mods/paper-pane/ink";
+const INK_SORT = { viewed: `${INK}/eye.svg`, priority: `${INK}/clock.svg`, grouped: `${INK}/layers.svg` };
+const soak = (ms) => Math.round(255 * Math.min(1, 0.42 + 0.58 * (ms / 900000))).toString(16).padStart(2, "0");
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -188,9 +206,9 @@ export default class Agents extends View {
           setShared("agents.sort", s.id);
           closeOverlay(props().overlay);
         })
-        .child(svg(s.icon).size(14).flex_none().text_color(t.muted))
+        .child(svg(props()?.cards ? INK_SORT[s.id] : s.icon).size(14).flex_none().text_color(t.muted))
         .child(div().flex_1().child(s.label))
-        .when(s.id === on, (el) => el.child(svg("mods/workspace-chrome/check.svg").size(14).flex_none().text_color(t.foreground)))));
+        .when(s.id === on, (el) => el.child(svg(props()?.cards ? "mods/paper-agents/ink-tick.svg" : "mods/workspace-chrome/check.svg").size(14).flex_none().text_color(t.foreground)))));
   }
 
   peek(addr) {
@@ -235,8 +253,28 @@ export default class Agents extends View {
       .child(this.status(t, { status: st }, compact));
   }
 
+  // The cards' colours: paper, ink and pencil from the terminal's own theme.
+  desk(t) {
+    const ink = t.terminal_foreground ?? t.foreground;
+    return { paper: t.background, ink, pencil: ink + "99", faint: ink + "16", dark: settings().dark };
+  }
+
+  // A status in ink. On a card (`d`) it's the ink of the card; off one, on the frame, the theme's colours.
+  mark(t, a, compact, d) {
+    const dark = d ? d.dark : true;
+    if (a.status === "working") {
+      const color = d ? d.ink + soak(Date.now() - this.since(a)) : t.working;
+      return svg("mods/paper-agents/ink-ring.svg").size(16).flex_none().text_color(color).spin(1600);
+    }
+    if (a.status === "blocked" && (compact || !d)) return div().w(14).flex_none().text_center().font_family(HAND).text_size(21).line_height(18).text_color(d && !d.dark ? "#b3261a" : t.blocked).child("!");
+    if (a.status === "blocked") return image(`mods/paper-agents/stamp-${dark ? "dark" : "light"}.png`).w(72).h(30).mr(-5).flex_none();
+    if (a.status === "done") return svg("mods/paper-agents/ink-tick.svg").size(16).flex_none().text_color(d && !d.dark ? t.ansi12 : t.done);
+    return svg("mods/paper-agents/ink-idle.svg").size(11).mx(2).flex_none().text_color(d ? d.pencil : t.idle ?? t.dim);
+  }
+
   // compact: a ! for blocked where a header already says "Needs you".
-  status(t, a, compact = false) {
+  status(t, a, compact = false, d = null) {
+    if (props()?.cards) return this.mark(t, a, compact, d);
     const color = t[a.status] ?? t.dim;
     if (a.status === "working") return svg("mods/workspace-chrome/spinner.svg").size(12).mx(1).flex_none().text_color(t.working).spin(900);
     if (a.status === "blocked" && compact) return div().size(14).flex_none().rounded(4).bg(t.blocked + "26").text_size(10.5).font_bold().text_color(t.blocked).flex().items_center().justify_center().child("!");
@@ -244,6 +282,35 @@ export default class Agents extends View {
     // Idle: a ring; done: a dot.
     if (a.status === "idle") return div().size(7).mx(3).flex_none().rounded(4).border(1.5).border_color(t.idle ?? t.dim);
     return div().size(7).mx(3).flex_none().rounded(4).bg(a.status === "done" ? color : t.dim + "00");
+  }
+
+  // A list's heading: on the desk, printed small caps.
+  heading(t, text) {
+    if (props()?.cards) return div().font_family(PRINT).text_size(14).text_color(t.muted).child(text);
+    return div().text_size(11.5).font_medium().text_color(t.dim).child(text);
+  }
+
+  // A paper card lying on the frame, a strip of its space's ink down the left edge.
+  // The one you're on is lit; the others sit a little in shadow until hovered.
+  card(d, id, on, space) {
+    return h_flex()
+      .id(id)
+      .relative()
+      .pl(13)
+      .pr(8)
+      .h(50)
+      .mb(5)
+      .flex_none()
+      .rounded(2)
+      .overflow_hidden()
+      .items_center()
+      .gap(9)
+      .border_1()
+      .border_color(d.ink + "30")
+      .bg(on ? d.paper : d.paper + "c8")
+      .when(on, (el) => el.shadow_md())
+      .hover((el) => el.bg(on ? d.paper : d.paper + "e6"))
+      .child(div().absolute().left(0).top(0).bottom(0).w(4).bg(inkOf(space)));
   }
 
   // Spaces with no agent in them: a shell you opened with the +, until Claude (or
@@ -270,14 +337,15 @@ export default class Agents extends View {
           .on_click(() => run("pane.focus", { pane: lead.pane }))
           .child(pic);
       }
+      const d = props()?.cards ? this.desk(t) : null;
       const close = div()
         .id(`tm-close-${s.id}`)
         .flex_none()
         .p(2)
         .rounded(4)
-        .text_color(t.dim)
+        .text_color(d ? d.pencil : t.dim)
         .cursor_pointer()
-        .hover((el) => el.bg(t.hover).text_color(t.foreground))
+        .hover((el) => el.bg(d ? d.faint : t.hover).text_color(d ? d.ink : t.foreground))
         .tooltip("Close space")
         .on_click((_e, cx) => {
           cx.stop_propagation();
@@ -285,8 +353,8 @@ export default class Agents extends View {
           this.hoveredShell = null;
           cx.notify();
         })
-        .child(svg("mods/workspace-chrome/x.svg").size(13));
-      return h_flex()
+        .child(svg(d ? `${INK}/x.svg` : "mods/workspace-chrome/x.svg").size(d ? 11 : 13));
+      return (d ? this.card(d, `tm-${s.id}`, on, s.id) : h_flex()
         .id(`tm-${s.id}`)
         .px(8)
         .h(46)
@@ -295,19 +363,19 @@ export default class Agents extends View {
         .items_center()
         .gap(9)
         .when(on, (el) => el.bg(t.selected))
+        .hover((el) => el.bg(t.hover)))
         .cursor_pointer()
-        .hover((el) => el.bg(t.hover))
         .on_hover((over, cx) => {
           if (over) this.hoveredShell = s.id;
           else if (this.hoveredShell === s.id) this.hoveredShell = null;
           cx.notify();
         })
         .on_click(() => run("pane.focus", { pane: lead.pane }))
-        .child(pic)
+        .child(d ? icon(lead.program, 16, d.ink) ?? svg(`${INK}/terminal.svg`).size(16).flex_none().text_color(d.pencil) : pic)
         .child(v_flex().flex_1().min_w(0).gap(1)
-          .child(div().truncate().text_color(t.foreground).child(s.name || "Terminal"))
-          .child(div().truncate().text_size(12).text_color(t.dim).child(lead.program?.name ?? "Terminal")))
-        .when(Boolean(s.machine), (el) => el.child(div().text_size(10).text_color(t.dim).child(s.machine)))
+          .child(div().truncate().text_color(d ? d.ink : t.foreground).child(s.name || "Terminal"))
+          .child(div().truncate().text_size(12).text_color(d ? d.pencil : t.dim).child(lead.program?.name ?? "Terminal")))
+        .when(Boolean(s.machine), (el) => el.child(div().text_size(10).text_color(d ? d.pencil : t.dim).child(s.machine)))
         .when(this.hoveredShell === s.id, (el) => el.child(close));
     });
     if (collapsed) return rows.length ? v_flex().flex_none().children(rows) : null;
@@ -322,7 +390,7 @@ export default class Agents extends View {
           .flex_none()
           .items_center()
           .justify_between()
-          .child(div().text_size(11.5).font_medium().text_color(t.dim).child("Terminals"))
+          .child(this.heading(t, "Terminals"))
           .child(
             // A new space with a plain terminal, like Herdr's "New space".
             div()
@@ -337,7 +405,7 @@ export default class Agents extends View {
               .hover((el) => el.bg(t.hover).text_color(t.foreground))
               .on_click(() => run("space.new"))
               .tooltip("New terminal")
-              .child(svg("mods/workspace-chrome/plus.svg").size(14)),
+              .child(svg(props()?.cards ? `${INK}/plus.svg` : "mods/workspace-chrome/plus.svg").size(props()?.cards ? 13 : 14)),
           ),
       )
       .when(rows.length > 0, (el) => el.child(v_flex().px(8).pb(4).children(rows)));
@@ -392,15 +460,15 @@ export default class Agents extends View {
         .items_center()
         .rounded(4)
         .text_size(11)
-        .text_color(open ? t.dim : (t[top] ?? t.dim))
+        .text_color(d ? d.pencil : open ? t.dim : (t[top] ?? t.dim))
         .cursor_pointer()
-        .hover((s) => s.bg(t.hover).text_color(t.foreground))
+        .hover((s) => s.bg(d ? d.faint : t.hover).text_color(d ? d.ink : t.foreground))
         .on_click((_e, cx) => {
           cx.stop_propagation();
           open ? this.folded.add(a.address) : this.folded.delete(a.address);
           cx.notify();
         })
-        .child(svg(`mods/workspace-chrome/chevron-${open ? "down" : "right"}.svg`).size(11).flex_none())
+        .child(svg(`${d ? INK : "mods/workspace-chrome"}/chevron-${open ? "down" : "right"}.svg`).size(11).flex_none())
         .when(!open, (el) => el.child(String(subs.length)));
     };
 
@@ -419,8 +487,9 @@ export default class Agents extends View {
       if (detail.get(a.address) == null && seen[`${a.space_name}\u0000`] > 1) detail.set(a.address, label(a));
     }
 
+    const d = props()?.cards ? this.desk(t) : null;
     const row = (a, i, subs = []) => {
-      const pic = icon(a.program, 16, t.foreground);
+      const pic = icon(a.program, 16, d && !collapsed ? d.ink : t.foreground);
       const more = detail.get(a.address);
       // An agent on another machine (`vps/t7`) says which.
       const machine = a.address.includes("/") ? a.address.split("/")[0] : null;
@@ -445,9 +514,9 @@ export default class Agents extends View {
         .flex_none()
         .p(2)
         .rounded(4)
-        .text_color(t.dim)
+        .text_color(d ? d.pencil : t.dim)
         .cursor_pointer()
-        .hover((s) => s.bg(t.hover).text_color(t.foreground))
+        .hover((s) => s.bg(d ? d.faint : t.hover).text_color(d ? d.ink : t.foreground))
         .tooltip(isPinned ? "Unpin" : "Pin to the top")
         .on_click((_e, cx) => {
           cx.stop_propagation();
@@ -456,12 +525,14 @@ export default class Agents extends View {
           this.hovered = null;
           cx.notify();
         })
-        .child(svg(`mods/workspace-chrome/${isPinned ? "pin-off" : "pin"}.svg`).size(13));
+        .child(svg(d ? `${INK}/pin.svg` : `mods/workspace-chrome/${isPinned ? "pin-off" : "pin"}.svg`).size(13));
       // Under a space header the space goes without saying; an automatic tab number says nothing.
       // Without a space header above (priority, pinned) the row names its space.
       const full = byPriority || byViewed || isPinned;
       const name = full ? a.space_name || label(a) : more ?? (/^\d+$/.test(label(a)) ? a.program?.name || label(a) : label(a));
-      return h_flex()
+      const fg = d ? d.ink : t.foreground;
+      const dim = d ? d.pencil : t.dim;
+      return (d ? this.card(d, `ag-${a.address}`, a.focused, a.space).h(full ? 50 : 34) : h_flex()
         .id(`ag-${a.address}`)
         .px(8)
         .h(full ? 46 : 30)
@@ -470,8 +541,8 @@ export default class Agents extends View {
         .items_center()
         .gap(9)
         .when(a.focused, (el) => el.bg(t.selected))
+        .hover((s) => s.bg(t.hover)))
         .cursor_pointer()
-        .hover((s) => s.bg(t.hover))
         .on_hover((on, cx) => {
           if (on) this.hovered = a.address;
           else if (this.hovered === a.address) this.hovered = null;
@@ -488,15 +559,18 @@ export default class Agents extends View {
         // agent is doing (a named tab or its own title, e.g. Claude Code's /rename).
         .child(full
           ? v_flex().flex_1().min_w(0).gap(1)
-            .child(div().truncate().text_color(idle ? t.muted : t.foreground).child(name))
-            .child(div().truncate().text_size(12).text_color(t.dim).child(more ?? a.program?.name ?? ""))
+            .child(div().truncate().text_color(idle ? (d ? d.ink + "c0" : t.muted) : fg).child(name))
+            .child(div().truncate().text_size(12).text_color(dim).child(more ?? a.program?.name ?? ""))
           : h_flex().flex_1().min_w(0).gap(5).items_center()
-            .child(div().min_w(0).max_w(200).truncate().text_color(idle ? t.muted : t.foreground).child(name)))
-        .when(Boolean(machine), el => el.child(div().text_size(10).text_color(t.dim).child(machine)))
+            .child(div().min_w(0).max_w(200).truncate().text_color(idle ? (d ? d.ink + "c0" : t.muted) : fg).child(name)))
+        .when(Boolean(machine), el => el.child(div().text_size(10).text_color(dim).child(machine)))
         .when(subs.length > 0, el => el.child(fold(a, subs)))
         .when(this.hovered === a.address, el => el.child(pin))
-        .when(this.hovered !== a.address && Boolean(when), el => el.child(div().flex_none().text_size(11).text_color(t.dim).child(duration(now - when))))
-        .child(this.status(t, a, byPriority && !isPinned));
+        // On a card the time is a pencil note, and a stamp leaves no room for one.
+        .when(this.hovered !== a.address && Boolean(when) && !(d && a.status === "blocked" && !(byPriority && !isPinned)), el => el.child(d
+          ? div().flex_none().font_family(HAND).text_size(15).text_color(dim).child(duration(now - when))
+          : div().flex_none().text_size(11).text_color(t.dim).child(duration(now - when))))
+        .child(this.status(t, a, byPriority && !isPinned, d));
     };
 
     // Groups in list order: spaces (grouped) or priority sections. Agents of a
@@ -534,12 +608,12 @@ export default class Agents extends View {
           open ? this.folded.add(g.id) : this.folded.delete(g.id);
           cx.notify();
         })
-        .child(div().truncate().text_color(t[g.status] ?? t.dim).child(g.label))
+        .child(div().truncate().text_color(t[g.status] ?? t.dim).when(Boolean(d), (el) => el.font_family(PRINT).text_size(12.5)).child(g.label))
         .when(byPriority || byViewed || !open, (el) => el.child(div().text_color(t.dim).child(String(g.members.length))))
         .child(div().flex_1())
         .when(!open, (el) => el
           .when(!byPriority && top && top !== "idle", (el) => el.child(this.status(t, { status: top }, true)))
-          .child(svg("mods/workspace-chrome/chevron-right.svg").size(11).flex_none().text_color(t.dim)));
+          .child(svg(`${d ? INK : "mods/workspace-chrome"}/chevron-right.svg`).size(11).flex_none().text_color(t.dim)));
     };
     const rows = collapsed
       ? list.flatMap(withKids)
@@ -564,16 +638,16 @@ export default class Agents extends View {
             .flex_none()
             .items_center()
             .justify_between()
-            .child(div().text_size(11.5).font_medium().text_color(t.dim).child("Agents"))
+            .child(this.heading(t, "Agents"))
             .child(
               div()
                 .id("ag-sort")
                 .text_size(11)
                 .text_color(t.dim)
                 .hover((s) => s.text_color(t.foreground))
-                .on_click(() => openOverlay({ mod: "paper-agents", kind: "popup", width: 200, height: 172, props: { sortMenu: true } }))
+                .on_click(() => openOverlay({ mod: "paper-agents", kind: "popup", width: 200, height: 172, props: { sortMenu: true, cards: Boolean(props()?.cards) } }))
                 .tooltip(`Sort agents: ${sort.label}`)
-                .child(svg(sort.icon).size(14)),
+                .child(svg(props()?.cards ? INK_SORT[sort.id] : sort.icon).size(14)),
             ),
         ),
       )
