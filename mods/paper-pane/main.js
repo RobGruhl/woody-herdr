@@ -8,6 +8,8 @@
 // drawn on the paper instead: the name handwritten on a strip of masking tape, the
 // folder in pencil beside it, and the status as an ink mark (a turning ring, a
 // tick, a NEEDS YOU rubber stamp).
+// With { "painted": true } instead (the paper-grain layout) the header is drawn as
+// Herdr's, with the same ink marks for the status and the brush-painted buttons.
 
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
@@ -28,6 +30,13 @@ function told(p) {
   const live = (p.title ?? "").replace(/^[^\p{L}\p{N}]+/u, "").trim();
   if (!live || live === p.program?.name || live.toLowerCase() === p.program?.key) return null;
   return /^[~/]|^[A-Za-z]:\\/.test(live) || live.includes("@") ? null : live;
+}
+
+// Whether a "#rrggbb" colour is a dark one, to pick the stamp that shows on it.
+function darkish(hex) {
+  const n = parseInt(String(hex ?? "").slice(1, 7), 16);
+  if (Number.isNaN(n)) return false;
+  return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) < 128;
 }
 
 function folder(cwd) {
@@ -104,6 +113,8 @@ export default class Pane extends View {
     const pic = icon(p.program, 14, t.dim);
     const st = p.status;
     const pane = p.pane;
+    const painted = Boolean(props()?.painted);
+    const b = (name) => (painted ? `ink/${name === "close" ? "x" : name}` : name);
     return h_flex()
       .id(`pane-head-${pane}`)
       .size_full()
@@ -119,13 +130,17 @@ export default class Pane extends View {
       .when(Boolean(pic), (el) => el.child(pic))
       .child(div().flex_none().truncate().max_w(360).font_medium().text_color(t.foreground).child(name))
       .child(div().flex_1().truncate().text_color(t.dim).child(folder(p.cwd)))
-      .when(st === "working", el => el.child(svg("mods/workspace-chrome/spinner.svg").size(12).flex_none().text_color(t.working).spin(900)))
-      .when(st === "blocked", el => el.child(div().flex_none().px(6).h(18).flex().items_center().rounded(5).bg(t.blocked + "26").text_size(10.5).font_semibold().text_color(t.blocked).child("Needs you")))
-      .when(st === "done", el => el.child(div().size(7).flex_none().rounded(4).bg(t.done)))
+      // Painted: the ink marks, in the theme's colours since the header isn't paper.
+      .when(painted && st === "working", el => el.child(svg("mods/paper-agents/ink-ring.svg").size(15).flex_none().text_color(t.working).spin(1600)))
+      .when(painted && st === "blocked", el => el.child(image(`mods/paper-agents/stamp-${darkish(t.surface) ? "dark" : "light"}.png`).w(62).h(26).flex_none()))
+      .when(painted && st === "done", el => el.child(svg("mods/paper-agents/ink-tick.svg").size(16).flex_none().text_color(t.done)))
+      .when(!painted && st === "working", el => el.child(svg("mods/workspace-chrome/spinner.svg").size(12).flex_none().text_color(t.working).spin(900)))
+      .when(!painted && st === "blocked", el => el.child(div().flex_none().px(6).h(18).flex().items_center().rounded(5).bg(t.blocked + "26").text_size(10.5).font_semibold().text_color(t.blocked).child("Needs you")))
+      .when(!painted && st === "done", el => el.child(div().size(7).flex_none().rounded(4).bg(t.done)))
       .when(this.hovered, el => el
-        .child(this.button(t, `ph-r-${pane}`, "split-right", "pane.split", { direction: "right", pane }))
-        .child(this.button(t, `ph-d-${pane}`, "split-down", "pane.split", { direction: "down", pane }))
-        .child(this.button(t, `ph-z-${pane}`, p.zoomed ? "unzoom" : "zoom", "pane.zoom", { pane }))
-        .child(this.button(t, `ph-x-${pane}`, "close", "pane.close", { pane })));
+        .child(this.button(t, `ph-r-${pane}`, b("split-right"), "pane.split", { direction: "right", pane }))
+        .child(this.button(t, `ph-d-${pane}`, b("split-down"), "pane.split", { direction: "down", pane }))
+        .child(this.button(t, `ph-z-${pane}`, b(p.zoomed ? "unzoom" : "zoom"), "pane.zoom", { pane }))
+        .child(this.button(t, `ph-x-${pane}`, b("close"), "pane.close", { pane })));
   }
 }

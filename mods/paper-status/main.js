@@ -1,9 +1,11 @@
 // Herdr's status bar for the paper-desk layout, set in printer's small caps
 // (IM FELL English SC, mods/paper-pane/fonts) like the sidebar's headings.
+// With { "plain": true } in its props (the paper-grain layout) the type is Herdr's
+// and only the brush-painted icons are kept.
 
 import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { spaces, agents, theme, run, window, keys } from "herdr";
+import { spaces, agents, theme, run, window, keys, props } from "herdr";
 
 export default class WorkspaceStatus extends View {
   // The palette key as actually bound, not a hardcoded one; without a
@@ -21,11 +23,13 @@ export default class WorkspaceStatus extends View {
     const t = theme();
     const space = spaces().find(s => s.active);
     const list = agents();
+    const plain = Boolean(props()?.plain);
     const needs = list.filter(a => a.status === "blocked").length;
     // Brush-painted where there is one (mods/paper-pane/ink); the server icon is Herdr's.
     const INK = { monitor: "mods/paper-pane/ink/monitor.svg", branch: "mods/paper-pane/ink/branch.svg" };
     const label = (icon, text) => h_flex().gap(6).items_center().child(svg(INK[icon] ?? `mods/workspace-chrome/${icon}.svg`).size(13)).child(text);
-    return h_flex().size_full().px(14).gap(16).items_center().bg(t.chrome).border_t(1).border_color(t.border).font_family("IM FELL English SC").text_size(13).text_color(t.muted)
+    return h_flex().size_full().px(14).gap(16).items_center().bg(t.chrome).border_t(1).border_color(t.border).text_size(plain ? 11.8 : 13).text_color(t.muted)
+      .when(!plain, el => el.font_family("IM FELL English SC"))
       .child(label(space?.machine ? "server" : "monitor", space?.machine ?? "This computer"))
       .when(Boolean(space?.branch), el => el.child(label("branch", space.branch)))
       .child(h_flex().gap(6).items_center().child(div().size(6).rounded(3).bg(t.dim)).child(`${list.length} agents`)

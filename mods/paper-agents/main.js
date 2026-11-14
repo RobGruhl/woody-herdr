@@ -6,6 +6,7 @@
 // is a paper card on the frame: typed in ink, a strip of coloured ink down its edge for
 // its space, how long in pencil, and the status as an ink mark: a ring that turns and
 // darkens the longer the agent works, a tick when it's done, a NEEDS YOU rubber stamp.
+// With { "print": true } too, the headings are set in a printer's small caps.
 
 import { View, div, image, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
@@ -284,9 +285,9 @@ export default class Agents extends View {
     return div().size(7).mx(3).flex_none().rounded(4).bg(a.status === "done" ? color : t.dim + "00");
   }
 
-  // A list's heading: on the desk, printed small caps.
+  // A list's heading: with print, small caps.
   heading(t, text) {
-    if (props()?.cards) return div().font_family(PRINT).text_size(14).text_color(t.muted).child(text);
+    if (props()?.cards && props()?.print) return div().font_family(PRINT).text_size(14).text_color(t.muted).child(text);
     return div().text_size(11.5).font_medium().text_color(t.dim).child(text);
   }
 
@@ -608,7 +609,7 @@ export default class Agents extends View {
           open ? this.folded.add(g.id) : this.folded.delete(g.id);
           cx.notify();
         })
-        .child(div().truncate().text_color(t[g.status] ?? t.dim).when(Boolean(d), (el) => el.font_family(PRINT).text_size(12.5)).child(g.label))
+        .child(div().truncate().text_color(t[g.status] ?? t.dim).when(Boolean(d) && Boolean(props()?.print), (el) => el.font_family(PRINT).text_size(12.5)).child(g.label))
         .when(byPriority || byViewed || !open, (el) => el.child(div().text_color(t.dim).child(String(g.members.length))))
         .child(div().flex_1())
         .when(!open, (el) => el

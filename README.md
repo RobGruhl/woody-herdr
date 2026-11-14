@@ -16,13 +16,15 @@ A look for the [Herdr](https://herdr.dev) desktop app: terminals on textured par
 - **Terminals above Agents.** The sidebar has no Spaces list. A Terminals list above Agents shows each space with no agent in it. Its + opens a new space with a plain shell; once you start Claude Code there, the space moves down to Agents. Hover a terminal row for an x that closes it.
 - **Claude Code in matching colours.** A launcher starts Claude Code with a parchment theme when Herdr is light: Claude's light theme with the prompt band, the bash-message rows and the other near-white backgrounds in paper shades, so they don't show as grey-white stripes on the paper.
 - **Claude Code sessions that save their transcripts.** Herdr's pane shells start through a small wrapper that drops the session markers Claude Code puts on its children. Without it, opening the Herdr app from a shell inside a Claude session makes every Claude started in Herdr a transcript-less child of that session ("Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker"). The launcher drops them too.
+- **Paper cards, ink marks and painted icons.** In the sidebar, agents and terminals are paper cards lying on the walnut, with a strip of coloured ink for the space and the time since you last looked as a pencil note. Status is an ink mark everywhere: a brushed ring that turns while an agent works, a tick when it's done, a pencil circle when idle and a NEEDS YOU rubber stamp when it needs you. Twenty brush-and-ink icons replace Herdr's line icons on the cards, the tab bar, the pane headers, the sidebar and the status bar.
+- **Two alert sounds**, a counter bell for an agent that needs you and two knocks on wood for one that finished. They are optional: see below.
 - **Berkeley Mono Dotted** for terminals and panels, if you have it.
 
 Dark mode is Herdr's own graphite look plus the dark paper.
 
 ## The paper-and-ink version
 
-A second layout, `paper-desk`, is installed beside the first. It is the same window with everything on it made of paper, tape and ink:
+A second layout, `paper-desk`, is installed beside the first. It is the same window with everything on it made of paper, tape and ink. The cards, the ink marks, the painted icons and the sounds are in the first layout too; the tape, the paper slips and the small caps are only here:
 
 - **Agents and terminals are paper cards** lying on the walnut, typed in ink. A strip of coloured ink down a card's left edge says which space it belongs to, and the time since you last looked is a pencil note.
 - **Status is an ink mark.** A brushed ring turns while an agent works and darkens over its first quarter of an hour, a blue tick means done, a pencil circle means idle, and an agent that needs you gets a red NEEDS YOU rubber stamp.
@@ -153,7 +155,7 @@ Give every new render a new file name and update the texture table in `mods/pape
 |---|---|
 | `layouts/paper-grain.json` | The layout: a copy of Herdr's `main` with the paper, the see-through frame, the toggle and the Clawdr header |
 | `layouts/paper-desk.json` | The paper-and-ink layout: the same window, with props that turn on the cards, tape and ink in the mods below, and `paper-tabs` and `paper-status` in place of Herdr's tab bar and status bar |
-| `mods/paper-tabs`, `mods/paper-status` | Herdr's tab bar as paper slips and tape labels, and its status bar in small caps (paper-desk only) |
+| `mods/paper-tabs`, `mods/paper-status` | Herdr's tab bar as paper slips and tape labels, and its status bar in small caps. In paper-grain, `{ "plain": true }` draws both as Herdr's, with the ink marks and painted icons |
 | `mods/paper-pane/fonts` | Caveat Brush (the handwriting) and IM Fell English SC (the small caps), both under the SIL Open Font License |
 | `sounds/` | The counter bell and the wood knock, and the script that synthesises them |
 | `art/make-desk-art.py` | Draws paper-desk's ink marks, rubber stamp, tape ends and brushed sun and moon |

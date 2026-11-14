@@ -34,7 +34,8 @@
               "content": {
                 "mod": "paper-agents",
                 "props": {
-                  "cards": true
+                  "cards": true,
+                  "print": true
                 }
               },
               "size": {

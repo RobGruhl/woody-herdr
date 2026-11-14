@@ -32,6 +32,8 @@ export default class WorkspaceChrome extends View {
   render() {
     const t = theme();
     const collapsed = narrow();
+    // { "painted": true } (the paper-grain layout): the brush-painted icons, nothing else changed.
+    const inked = Boolean(props()?.print || props()?.painted);
     if (props()?.footer && props()?.print) {
       // The paper-desk layout's footer: two slips of paper typed in ink, like its cards and tabs.
       const ink = t.terminal_foreground ?? t.foreground, paper = t.background;
@@ -48,7 +50,7 @@ export default class WorkspaceChrome extends View {
     if (props()?.footer) {
       const row = (id, icon, label, dim, action) => h_flex().id(id).h(28).px(8).gap(9).items_center().rounded(8)
         .text_color(dim ? t.dim : t.muted).hover(s => s.bg(t.hover).text_color(t.foreground)).cursor_pointer()
-        .on_click(action).child(svg(`mods/clawdr-chrome/${icon}.svg`).size(14))
+        .on_click(action).child(svg(`mods/${inked ? "paper-pane/ink" : "clawdr-chrome"}/${icon}.svg`).size(14))
         .when(!collapsed, el => el.child(label));
       return v_flex().size_full().bg(t.chrome).border_t(1).border_color(t.border).px(8).pt(4).pb(8).text_size(13)
         .child(row("settings", "settings", "Settings", false, () => run("app.settings"))
@@ -61,8 +63,8 @@ export default class WorkspaceChrome extends View {
         // The paper-desk layout's header: the name in printer's small caps (mods/paper-pane/fonts).
         ? div().font_family("IM FELL English SC").text_size(18).text_color(t.foreground).child("Clawdr")
         : div().font_semibold().text_color(t.foreground).child("Clawdr"))))
-      .when(!collapsed, el => el.child(this.button("search", svg(props()?.print ? "mods/paper-pane/ink/search.svg" : "mods/clawdr-chrome/search.svg").size(15), () => run("mod.open", { name: "picker" }))))
+      .when(!collapsed, el => el.child(this.button("search", svg(inked ? "mods/paper-pane/ink/search.svg" : "mods/clawdr-chrome/search.svg").size(15), () => run("mod.open", { name: "picker" }))))
       // On the macOS rail the traffic lights fill the row; the agents list's » unfolds it.
-      .when(!(collapsed && window()?.platform === "macos"), el => el.child(this.button("sidebar-toggle", svg(props()?.print ? "mods/paper-pane/ink/sidebar.svg" : "mods/clawdr-chrome/sidebar.svg").size(15), toggleSidebar)));
+      .when(!(collapsed && window()?.platform === "macos"), el => el.child(this.button("sidebar-toggle", svg(inked ? "mods/paper-pane/ink/sidebar.svg" : "mods/clawdr-chrome/sidebar.svg").size(15), toggleSidebar)));
   }
 }

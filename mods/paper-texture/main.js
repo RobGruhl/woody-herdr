@@ -56,7 +56,7 @@ export default class PaperTexture extends View {
     const b = this.bounds;
     openOverlay({
       mod: "paper-texture", kind: "popup", width: MENU_WIDTH, height: 46 + Math.max(1, textures().length) * ROW,
-      props: { ink: Boolean(props()?.ink) },
+      props: { ink: Boolean(props()?.ink), painted: Boolean(props()?.painted) },
       ...(b ? { at: { x: Math.max(8, b.x + b.width - MENU_WIDTH), y: b.y + b.height + 6 } } : {}),
     });
   }
@@ -88,9 +88,10 @@ export default class PaperTexture extends View {
           if (e.bounds) this.bounds = e.bounds;
           this.openMenu();
         })
-        .child(svg(`${ICONS}/layers.svg`).size(14))
+        // { "painted": true } (the paper-grain layout): the brush-painted icons on Herdr's button.
+        .child(svg(props()?.painted ? "mods/paper-pane/ink/layers.svg" : `${ICONS}/layers.svg`).size(14))
         .child(div().child(now?.short ?? "Paper"))
-        .child(svg(`${ICONS}/chevron-down.svg`).size(12)));
+        .child(svg(props()?.painted ? "mods/paper-pane/ink/chevron-down.svg" : `${ICONS}/chevron-down.svg`).size(props()?.painted ? 11 : 12)));
   }
 
   menu() {
@@ -118,7 +119,7 @@ export default class PaperTexture extends View {
         h_flex().id(`texture-${x.id}`).h(ROW).px(9).gap(10).rounded(7).items_center().flex_none()
           .text_color(c.text).hover((s) => s.bg(c.hover))
           .on_click(() => pick(x.id))
-          .child(div().w(14).flex_none().when(x.id === chosen, (el) => el.child(svg(inked ? "mods/paper-agents/ink-tick.svg" : `${ICONS}/check.svg`).size(14).text_color(c.tick))))
+          .child(div().w(14).flex_none().when(x.id === chosen, (el) => el.child(svg(inked || props()?.painted ? "mods/paper-agents/ink-tick.svg" : `${ICONS}/check.svg`).size(14).text_color(c.tick))))
           .child(div().flex_1().truncate().child(x.name))
           .child(div().text_size(11).text_color(c.dim).child(i < 9 ? String(i + 1) : ""))));
   }
