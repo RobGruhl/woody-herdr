@@ -118,7 +118,7 @@ for m in mods/*/; do mkdir -p "$H/$m"; cp "$m"mod.json "$H/$m"; cp -R "$m"* "$H/
 cp themes/*.json "$H/themes/"; cp backgrounds/* "$H/backgrounds/"
 cp layouts/paper-grain.json layouts/paper-grain.png layouts/paper-desk.json layouts/paper-desk.png "$H/layouts/"
 mkdir -p "$H/sounds"; cp sounds/*.mp3 "$H/sounds/"
-cp bin/claude-herdr-app bin/herdr-shell ~/.local/bin/; cp claude/themes/parchment.json ~/.claude/themes/
+cp bin/claude-herdr-app bin/herdr-shell bin/herdr-app-2 ~/.local/bin/; cp claude/themes/parchment.json ~/.claude/themes/
 ```
 
 Copying the layout resets the paper texture and light-mode frame written in that file; `paper-sync` writes your choices back when Herdr reloads the layout. If you changed the layout's theme to oak or steel, set it again. Copy a mod folder only into a mod of the same name: Herdr's own `pane`, `files`, `changes`, `agents` and `workspace-chrome` stay as they are.
@@ -129,6 +129,18 @@ Copying the layout resets the paper texture and light-mode frame written in that
 - **Paper texture:** the dropdown just left of the sun/moon button. Click a row, or press its number while the menu is open. The choice applies in light and dark and is kept across restarts. `paper-texture.next`, `paper-texture.prev` and `paper-texture.open` are key commands you can bind in `keys.json`.
 - **The light-mode frame:** walnut is the default. For oak or steel, set the light half of the layout's theme in `layouts/paper-grain.json` to `gruvbox-light` (oak) or `gruvbox-light-steel` (steel): `"theme": { "light": "gruvbox-light", "dark": "graphite" }`, and back to `walnut-parchment` for walnut.
 - **Claude Code colours:** a session keeps the colours it started with, because Herdr doesn't tell programs when its appearance changes. Restart Claude after toggling.
+
+## A second window for a second monitor
+
+```sh
+herdr-app-2
+```
+
+This opens a second Herdr window you can put on another monitor. Both windows show the same spaces, tabs and terminals, because both talk to the same herdr-core; each keeps its own selected space and tab, focus, zoom and layout. Run it again to raise the window. With arguments it sends a `herdr-app` command to that window: `herdr-app-2 ls`, `herdr-app-2 do tab.next`.
+
+To move a terminal to the other window, hover its pane header and click the monitor button, left of the split buttons. The terminal keeps running and lands in the tab the other window is showing, to the right of that window's focused pane. If both windows are showing the same tab, it gets a new tab and the other window switches to it. The move takes a second or two; `mods/paper-pane/send-to-other.sh` does it.
+
+The first run copies `~/.config/herdr-app` to `~/.config/herdr-app-2`, without the first window's saved position, names the copy "Clawdr 2" in the sidebar header, and turns the copy's alert sounds off, since each window plays them and two would play every sound twice. The two homes are separate after that: when you change or update a mod, a key or a setting, copy it to the second home too.
 
 ## Re-rendering the textures
 
@@ -173,6 +185,7 @@ Give every new render a new file name and update the texture table in `mods/pape
 | `backgrounds/` | Paper, parchment, walnut, oak and steel images, the paper/steel renderer, and the parchment grader |
 | `bin/claude-herdr-app` | Starts Claude Code with the parchment theme when Herdr is light (Claude's light theme if `parchment.json` isn't installed), without inherited Claude Code session markers |
 | `bin/herdr-shell` | The shell herdr-core starts in each new terminal: drops inherited Claude Code session markers, then execs the login shell |
+| `bin/herdr-app-2` | Opens a second Herdr window with its own home, `~/.config/herdr-app-2`, for a second monitor; with arguments, sends a `herdr-app` command to that window |
 | `claude/themes/parchment.json` | The Claude Code theme the launcher uses in light mode: Claude's light theme with four backgrounds in paper shades |
 | `programs.json` | Makes Herdr's + menu start Claude Code with the launcher |
 | `RECIPE.md` | The full brief: every size, colour and behaviour, and what trips a rebuild up |

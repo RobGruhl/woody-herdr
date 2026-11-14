@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+#
+# herdr-app-2 — a second Herdr window, for a second monitor.
+#
+#   herdr-app-2                 open the second window, or raise it if it's open
+#   herdr-app-2 ls              any herdr-app command, sent to the second window
+#   herdr-app-2 do tab.next
+#
+# Herdr keeps one window per home folder. This one's home is
+# ~/.config/herdr-app-2 (HERDR_APP_2_HOME picks another). Both windows talk to
+# the same herdr-core, so they show the same spaces, tabs and terminals; each
+# keeps its own selected space and tab, focus, zoom and layout.
+#
+# The first run makes the second home as a copy of the first (layouts, mods,
+# themes, keys, settings), without the first window's socket and saved
+# position, names it "Clawdr 2" in the sidebar header and turns its alert
+# sounds off (the first window already plays them). After that the two
+# homes are separate: copy a changed mod, key or setting across yourself.
+#
+# The app is started with a bare environment, so a window opened from a shell
+# inside a Claude Code session doesn't hand that session's markers to it (see
+# herdr-shell).
+
+set -eu
+
+first="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
+second="${HERDR_APP_2_HOME:-$HOME/.config/herdr-app-2}"
+
+if [ ! -d "$second" ]; then
+  if [ ! -d "$first" ]; then
+    echo "herdr-app-2: no Herdr home at $first: open Herdr once first" >&2
+    exit 1
+  fi
+  rsync -a \
+    --exclude herdr-app.sock --exclude view.json --exclude window.json \
+    --exclude windows.json --exclude telemetry \
+    "$first/" "$second/"
+  chrome="$second/mods/clawdr-chrome/main.js"
+  if [ -f "$chrome" ]; then
+    sed -i '' -e 's/child("Clawdr")/child("Clawdr 2")/' "$chrome"
+  fi
+  # Each window plays the alert sounds, so two would play every one twice.
+  if [ -f "$second/settings.json" ]; then
+    sed -i '' -e '/"sounds": {/,/}/ s/"enabled": true/"enabled": false/' "$second/settings.json"
+  fi
+  echo "herdr-app-2: made $second from $first"
+fi
+
+export HERDR_APP_HOME="$second"
+
+if [ "$#" -gt 0 ]; then
+  exec herdr-app "$@"
+fi
+
+# Already open: herdr-app with no arguments raises that home's window.
+if herdr-app status >/dev/null 2>&1; then
+  exec herdr-app
+fi
+
+exec env -i HOME="$HOME" USER="${USER:-$(id -un)}" PATH="/usr/bin:/bin" \
+  open -n -a Herdr --env HERDR_APP_HOME="$second"

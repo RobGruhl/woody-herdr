@@ -49,6 +49,7 @@ taken=()
 for t in "${targets[@]}"; do [ -e "$home/$t" ] && taken+=("$home/$t"); done
 [ -e "$bin/claude-herdr-app" ] && taken+=("$bin/claude-herdr-app")
 [ -e "$bin/herdr-shell" ] && taken+=("$bin/herdr-shell")
+[ -e "$bin/herdr-app-2" ] && taken+=("$bin/herdr-app-2")
 [ -e "$claude_themes/parchment.json" ] && taken+=("$claude_themes/parchment.json")
 if [ ${#taken[@]} -gt 0 ]; then
   echo "Stopped: these already exist, and install.sh never overwrites."
@@ -78,6 +79,7 @@ cp "$src/layouts/paper-grain.json" "$src/layouts/paper-desk.json" "$home/layouts
 mkdir -p "$bin"
 install -m 755 "$src/bin/claude-herdr-app" "$bin/claude-herdr-app"
 install -m 755 "$src/bin/herdr-shell" "$bin/herdr-shell"
+install -m 755 "$src/bin/herdr-app-2" "$bin/herdr-app-2"
 mkdir -p "$claude_themes"
 cp "$src/claude/themes/parchment.json" "$claude_themes/"
 

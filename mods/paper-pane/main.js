@@ -3,6 +3,8 @@
 // Shows the program's icon (the app's program table), the agent's name or
 // the terminal's title, the folder, and the agent's status; buttons split, zoom and close
 // this pane. Props from the app: { pane, terminal }. Click: focus the pane.
+// The monitor button sends the terminal to the other Herdr window (herdr-app-2,
+// a second window for a second monitor): see send-to-other.sh.
 //
 // With { "tape": true } in the header's props (the paper-desk layout) the header is
 // drawn on the paper instead: the name handwritten on a strip of masking tape, the
@@ -13,7 +15,7 @@
 
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { panes, props, run, theme, home, settings } from "herdr";
+import { panes, props, run, theme, home, settings, exec, appHome, notify } from "herdr";
 
 const HAND = "Caveat Brush"; // fonts/CaveatBrush-Regular.ttf
 const TAPE = "#e6d6a2"; // the torn ends, tape-left.png and tape-right.png, are this colour
@@ -61,9 +63,20 @@ export default class Pane extends View {
       .hover((s) => s.bg(t.hover).text_color(t.foreground))
       .on_click((_e, cx) => {
         cx.stop_propagation();
-        run(command, args);
+        if (typeof command === "function") command();
+        else run(command, args);
       })
+      .when(typeof command === "function", (el) => el.tooltip("Send to the other screen"))
       .child(svg(`mods/paper-pane/${icon}.svg`).size(icon.startsWith("ink/") ? 13 : 14));
+  }
+
+  // Move this pane's terminal to the tab the other window is showing. The script
+  // checks first and says why not; the move itself outlives this header.
+  send(p) {
+    const fail = (body) => notify({ title: "Can't send to the other screen", body, level: "warning" });
+    exec("/bin/sh", [`${appHome()}/mods/paper-pane/send-to-other.sh`, appHome(), p.terminal, p.tab])
+      .then((r) => { if (r.code !== 0) fail(r.stderr.trim()); })
+      .catch((e) => fail(String(e?.message ?? e)));
   }
 
   // On the paper: masking tape, pencil and ink.
@@ -98,6 +111,7 @@ export default class Pane extends View {
       .when(st === "done", el => el.child(svg("mods/paper-agents/ink-tick.svg").size(16).flex_none().text_color(dark ? t.done : t.ansi12)))
       .when(this.hovered, el => el
         // The brush-painted icons, in ink/.
+        .when(Boolean(p.terminal), (el) => el.child(button(`ph-s-${pane}`, "ink/monitor", () => this.send(p))))
         .child(button(`ph-r-${pane}`, "ink/split-right", "pane.split", { direction: "right", pane }))
         .child(button(`ph-d-${pane}`, "ink/split-down", "pane.split", { direction: "down", pane }))
         .child(button(`ph-z-${pane}`, p.zoomed ? "ink/unzoom" : "ink/zoom", "pane.zoom", { pane }))
@@ -138,6 +152,7 @@ export default class Pane extends View {
       .when(!painted && st === "blocked", el => el.child(div().flex_none().px(6).h(18).flex().items_center().rounded(5).bg(t.blocked + "26").text_size(10.5).font_semibold().text_color(t.blocked).child("Needs you")))
       .when(!painted && st === "done", el => el.child(div().size(7).flex_none().rounded(4).bg(t.done)))
       .when(this.hovered, el => el
+        .when(Boolean(p.terminal), (el) => el.child(this.button(t, `ph-s-${pane}`, "ink/monitor", () => this.send(p))))
         .child(this.button(t, `ph-r-${pane}`, b("split-right"), "pane.split", { direction: "right", pane }))
         .child(this.button(t, `ph-d-${pane}`, b("split-down"), "pane.split", { direction: "down", pane }))
         .child(this.button(t, `ph-z-${pane}`, b(p.zoomed ? "unzoom" : "zoom"), "pane.zoom", { pane }))
