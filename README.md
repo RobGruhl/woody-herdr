@@ -138,9 +138,9 @@ herdr-app-2
 
 This opens a second Herdr window you can put on another monitor. Both windows show the same spaces, tabs and terminals, because both talk to the same herdr-core; each keeps its own selected space and tab, focus, zoom and layout. Run it again to raise the window. With arguments it sends a `herdr-app` command to that window: `herdr-app-2 ls`, `herdr-app-2 do tab.next`.
 
-To move a terminal to the other window, hover its pane header and click the monitor button, left of the split buttons. The terminal keeps running and lands in the tab the other window is showing, to the right of that window's focused pane. If both windows are showing the same tab, it gets a new tab and the other window switches to it. The move takes a second or two; `mods/paper-pane/send-to-other.sh` does it.
+To move a terminal to the other window, hover its pane header and click the monitor button, left of the split buttons. The terminal keeps running and lands in the tab the other window is showing, to the right of that window's focused pane. If both windows are showing the same tab, it gets a new tab named after the other window (Clawdr 2, or Clawdr 1) and that window switches to it. The move takes a second or two; `mods/paper-pane/send-to-other.sh` does it.
 
-The first run copies `~/.config/herdr-app` to `~/.config/herdr-app-2`, without the first window's saved position, names the copy "Clawdr 2" in the sidebar header, and turns the copy's alert sounds off, since each window plays them and two would play every sound twice. The two homes are separate after that: when you change or update a mod, a key or a setting, copy it to the second home too.
+The first run copies `~/.config/herdr-app` to `~/.config/herdr-app-2`, without the first window's saved position and turns the copy's alert sounds off, since each window plays them and two would play every sound twice. Once the second home exists, the sidebar headers read Clawdr 1 and Clawdr 2. The two homes are separate after that: when you change or update a mod, a key or a setting, copy it to the second home too.
 
 ## Re-rendering the textures
 

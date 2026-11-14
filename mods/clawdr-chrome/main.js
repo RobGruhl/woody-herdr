@@ -1,6 +1,6 @@
 import { View, div, image, svg } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { theme, run, props, window, shared, setShared, updates, layout } from "herdr";
+import { theme, run, props, window, shared, setShared, updates, layout, appHome, readTextFile } from "herdr";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -24,6 +24,16 @@ function toggleSidebar() {
 }
 
 export default class WorkspaceChrome extends View {
+  // The name in the header. With a second window (herdr-app-2, whose home is this
+  // one's with "-2" on the end) the two are Clawdr 1 and Clawdr 2; alone, Clawdr.
+  init(_props, cx) {
+    const second = appHome().endsWith("-2");
+    this.name = second ? "Clawdr 2" : "Clawdr";
+    if (!second) readTextFile(`${appHome()}-2/settings.json`).then((text) => {
+      if (text !== null) { this.name = "Clawdr 1"; cx.notify(); }
+    }).catch(() => {});
+  }
+
   button(id, label, action) {
     const t = theme();
     return div().id(id).size(26).flex_none().flex().items_center().justify_center().rounded(6).text_color(t.muted).hover(s => s.bg(t.hover).text_color(t.foreground))
@@ -61,8 +71,8 @@ export default class WorkspaceChrome extends View {
       .when(window()?.platform === "macos" && !collapsed, el => el.pl(76))
       .when(!collapsed, el => el.child(h_flex().flex_1().gap(8).items_center().child(image("mods/clawdr-chrome/clawd-ram-gpt.svg").w(33).h(18)).child(props()?.print
         // The paper-desk layout's header: the name in printer's small caps (mods/paper-pane/fonts).
-        ? div().font_family("IM FELL English SC").text_size(18).text_color(t.foreground).child("Clawdr")
-        : div().font_semibold().text_color(t.foreground).child("Clawdr"))))
+        ? div().font_family("IM FELL English SC").text_size(18).text_color(t.foreground).child(this.name ?? "Clawdr")
+        : div().font_semibold().text_color(t.foreground).child(this.name ?? "Clawdr"))))
       .when(!collapsed, el => el.child(this.button("search", svg(inked ? "mods/paper-pane/ink/search.svg" : "mods/clawdr-chrome/search.svg").size(15), () => run("mod.open", { name: "picker" }))))
       // On the macOS rail the traffic lights fill the row; the agents list's » unfolds it.
       .when(!(collapsed && window()?.platform === "macos"), el => el.child(this.button("sidebar-toggle", svg(inked ? "mods/paper-pane/ink/sidebar.svg" : "mods/clawdr-chrome/sidebar.svg").size(15), toggleSidebar)));

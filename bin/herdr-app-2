@@ -13,9 +13,10 @@
 #
 # The first run makes the second home as a copy of the first (layouts, mods,
 # themes, keys, settings), without the first window's socket and saved
-# position, names it "Clawdr 2" in the sidebar header and turns its alert
-# sounds off (the first window already plays them). After that the two
-# homes are separate: copy a changed mod, key or setting across yourself.
+# position, and turns its alert sounds off (the first window already plays
+# them). The sidebar header names the windows Clawdr 1 and Clawdr 2 by their
+# homes. After that the two homes are separate: copy a changed mod, key or
+# setting across yourself.
 #
 # The app is started with a bare environment, so a window opened from a shell
 # inside a Claude Code session doesn't hand that session's markers to it (see
@@ -35,10 +36,6 @@ if [ ! -d "$second" ]; then
     --exclude herdr-app.sock --exclude view.json --exclude window.json \
     --exclude windows.json --exclude telemetry \
     "$first/" "$second/"
-  chrome="$second/mods/clawdr-chrome/main.js"
-  if [ -f "$chrome" ]; then
-    sed -i '' -e 's/child("Clawdr")/child("Clawdr 2")/' "$chrome"
-  fi
   # Each window plays the alert sounds, so two would play every one twice.
   if [ -f "$second/settings.json" ]; then
     sed -i '' -e '/"sounds": {/,/}/ s/"enabled": true/"enabled": false/' "$second/settings.json"

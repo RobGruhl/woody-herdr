@@ -9,7 +9,8 @@
 # Both windows show the same spaces and tabs, so "the other window" means the
 # tab that window is showing: the terminal lands there, to the right of its
 # focused pane. If the other window is showing this terminal's own tab, the
-# terminal gets a new tab instead, and the other window shows that.
+# terminal gets a new tab instead, named after the other window ("Clawdr 2",
+# or "Clawdr 1" when sent from the second window), and that window shows it.
 #
 # Herdr has no command that moves a pane to another tab. terminal.park takes
 # the pane away and leaves the terminal running; terminal.keep, sent to the
@@ -26,8 +27,8 @@ terminal="${2:?terminal}"
 tab="${3:?tab}"
 
 case "$this" in
-  *-2) other="${this%-2}" ;;
-  *)   other="$this-2" ;;
+  *-2) other="${this%-2}"; other_name="Clawdr 1" ;;
+  *)   other="$this-2"; other_name="Clawdr 2" ;;
 esac
 
 PATH="$PATH:$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin"
@@ -78,8 +79,12 @@ settle() {
   sleep 0.5
   try=0
   while [ "$try" -lt 3 ]; do
-    app "$other" do terminal.keep --terminal "$terminal" --place "$place"
-    settle "$other" 12 yes && settle "$this" 12 yes && exit 0
+    kept="$(app "$other" do terminal.keep --terminal "$terminal" --place "$place")"
+    if settle "$other" 12 yes && settle "$this" 12 yes; then
+      new_tab="$(printf '%s\n' "$kept" | sed -n 's/^ *"tab": "\(.*\)",*$/\1/p' | head -1)"
+      [ "$place" = tab ] && [ -n "$new_tab" ] && app "$other" do tab.rename --id "$new_tab" --name "$other_name"
+      exit 0
+    fi
     try=$((try + 1))
   done
   # Never leave it without a pane: put it back in this window.
