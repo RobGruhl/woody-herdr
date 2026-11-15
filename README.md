@@ -89,7 +89,7 @@ These steps start from a Mac with none of it installed. Herdr's macOS builds nee
    ./install.sh
    ```
 
-   The script copies the two layouts, the ten mods, the themes, the images and the sounds into Herdr's home, installs the Claude launcher and the pane shell wrapper into `~/.local/bin` and the parchment theme into `~/.claude/themes`, adds `programs.json` so Herdr's + menu starts Claude Code through the launcher, writes `~/.config/herdr-core/config.toml` so new terminals start through the wrapper, and switches the window to the `paper-grain` layout. It never overwrites: if any file it would write already exists, it stops and lists them. At the end it says if `~/.local/bin` isn't on your PATH or Claude Code isn't installed. `ctrl-shift-l` cycles back to your previous layout.
+   The script copies the two layouts, the ten mods, the themes, the images and the sounds into Herdr's home, installs the Claude launcher, the pane shell wrapper and the second-window launcher into `~/.local/bin` and the parchment theme into `~/.claude/themes`, adds `programs.json` so Herdr's + menu starts Claude Code through the launcher, writes `~/.config/herdr-core/config.toml` so new terminals start through the wrapper, and switches the window to the `paper-grain` layout. It never overwrites: if any file it would write already exists, it stops and lists them. At the end it says if `~/.local/bin` isn't on your PATH or Claude Code isn't installed. `ctrl-shift-l` cycles back to your previous layout.
 
 6. **Settings.** Open `~/.config/herdr-app/settings.json` (Herdr creates it) and add these, keeping your other keys:
 
@@ -172,7 +172,8 @@ Give every new render a new file name and update the texture table in `mods/pape
 | `mods/paper-pane/fonts` | Caveat Brush (the handwriting) and IM Fell English SC (the small caps), both under the SIL Open Font License |
 | `sounds/` | The counter bell and the wood knock, and the script that synthesises them |
 | `art/make-desk-art.py` | Draws paper-desk's ink marks, rubber stamp, tape ends and brushed sun and moon |
-| `mods/paper-pane/ink`, `art/ink-icons/`, `art/make-ink-icons.py` | paper-desk's twenty painted icons as tintable SVGs, the sheet gpt-image-2.6 painted, and the script that cuts and traces it |
+| `mods/paper-pane/ink`, `art/ink-icons/`, `art/make-ink-icons.py` | The twenty painted interface icons and the four machine icons as tintable SVGs, the two sheets gpt-image-2.6 painted, and the script that cuts and traces them |
+| `mods/paper-pane/send-to-other.sh` | Moves a terminal to the other Herdr window without ending it; the pane header's monitor button runs it |
 | `mods/paper-sync` | Swaps the paper and frame images to match the chosen texture, the appearance and the light theme (an invisible floating block); holds the texture table |
 | `mods/paper-texture` | The paper texture dropdown |
 | `mods/appearance-toggle` | The sun/moon button |
