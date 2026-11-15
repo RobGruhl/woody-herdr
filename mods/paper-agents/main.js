@@ -22,6 +22,12 @@ const inkOf = (id) => INKS[[...String(id ?? "")].reduce((h, ch) => (h * 31 + ch.
 // How dark a working agent's ring is: thin ink at first, full after a quarter of an hour.
 // Brush-painted icons for the cards (mods/paper-pane/ink), in place of Herdr's line icons.
 const INK = "mods/paper-pane/ink";
+// Where a terminal runs, as a painted icon under its program's: this computer is the
+// laptop, a machine named like "mini" or "phone" gets its own, any other is a server.
+const machineIcon = (machine) => `${INK}/${!machine ? "laptop" : /mini/i.test(machine) ? "mini" : /phone/i.test(machine) ? "phone" : "server"}.svg`;
+const stacked = (pic, machine, color) => v_flex().flex_none().items_center().gap(2)
+  .when(Boolean(pic), (el) => el.child(pic))
+  .child(svg(machineIcon(machine)).size(14).flex_none().text_color(color));
 const INK_SORT = { viewed: `${INK}/eye.svg`, priority: `${INK}/clock.svg`, grouped: `${INK}/layers.svg` };
 const soak = (ms) => Math.round(255 * Math.min(1, 0.42 + 0.58 * (ms / 900000))).toString(16).padStart(2, "0");
 
@@ -372,11 +378,12 @@ export default class Agents extends View {
           cx.notify();
         })
         .on_click(() => run("pane.focus", { pane: lead.pane }))
-        .child(d ? icon(lead.program, 16, d.ink) ?? svg(`${INK}/terminal.svg`).size(16).flex_none().text_color(d.pencil) : pic)
+        .child(stacked(d ? icon(lead.program, 16, d.ink) ?? svg(`${INK}/terminal.svg`).size(16).flex_none().text_color(d.pencil) : pic, s.machine, d ? d.ink + "cc" : t.muted))
         .child(v_flex().flex_1().min_w(0).gap(1)
           .child(div().truncate().text_color(d ? d.ink : t.foreground).child(s.name || "Terminal"))
           .child(div().truncate().text_size(12).text_color(d ? d.pencil : t.dim).child(lead.program?.name ?? "Terminal")))
-        .when(Boolean(s.machine), (el) => el.child(div().text_size(10).text_color(d ? d.pencil : t.dim).child(s.machine)))
+        // A machine with no icon of its own (the server) says which it is.
+        .when(Boolean(s.machine) && machineIcon(s.machine).endsWith("server.svg"), (el) => el.child(div().text_size(10).text_color(d ? d.pencil : t.dim).child(s.machine)))
         .when(this.hoveredShell === s.id, (el) => el.child(close));
     });
     if (collapsed) return rows.length ? v_flex().flex_none().children(rows) : null;
@@ -555,7 +562,7 @@ export default class Agents extends View {
             cx.stop_propagation();
             this.folded.has(a.address) ? this.folded.delete(a.address) : this.folded.add(a.address);
             cx.notify();
-          })).child(pic)))
+          })).child(stacked(pic, machine, d ? d.ink + "cc" : t.muted))))
         // Without a space header above, two lines: the space (repo), then what the
         // agent is doing (a named tab or its own title, e.g. Claude Code's /rename).
         .child(full
@@ -564,7 +571,7 @@ export default class Agents extends View {
             .child(div().truncate().text_size(12).text_color(dim).child(more ?? a.program?.name ?? ""))
           : h_flex().flex_1().min_w(0).gap(5).items_center()
             .child(div().min_w(0).max_w(200).truncate().text_color(idle ? (d ? d.ink + "c0" : t.muted) : fg).child(name)))
-        .when(Boolean(machine), el => el.child(div().text_size(10).text_color(dim).child(machine)))
+        .when(Boolean(machine) && machineIcon(machine).endsWith("server.svg"), el => el.child(div().text_size(10).text_color(dim).child(machine)))
         .when(subs.length > 0, el => el.child(fold(a, subs)))
         .when(this.hovered === a.address, el => el.child(pin))
         // On a card the time is a pencil note, and a stamp leaves no room for one.

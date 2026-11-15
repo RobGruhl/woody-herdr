@@ -41,6 +41,15 @@ function darkish(hex) {
   return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) < 128;
 }
 
+// Where the terminal runs, as a painted icon: this computer is the laptop, a machine
+// named like "mini" or "phone" gets its own, any other is a server. A pane on another
+// machine has that machine's name before a slash in its id.
+function machineIcon(p) {
+  const machine = p.pane.includes("/") ? p.pane.split("/")[0] : null;
+  const name = !machine ? "laptop" : /mini/i.test(machine) ? "mini" : /phone/i.test(machine) ? "phone" : "server";
+  return `mods/paper-pane/ink/${name}.svg`;
+}
+
 function folder(cwd) {
   if (!cwd) return "";
   const h = home();
@@ -105,6 +114,7 @@ export default class Pane extends View {
           .when(Boolean(pic), (el) => el.child(pic))
           .child(div().max_w(360).truncate().font_family(HAND).text_size(16).text_color(TAPE_INK).child(name)))
         .child(image("mods/paper-pane/tape-right.png").w(9).h(22).flex_none()))
+      .when(Boolean(p.terminal), (el) => el.child(svg(machineIcon(p)).size(16).flex_none().text_color(ink + "cc")))
       .child(div().flex_1().truncate().font_family(HAND).text_size(15).text_color(pencil).child(folder(p.cwd)))
       .when(st === "working", el => el.child(svg("mods/paper-agents/ink-ring.svg").size(15).flex_none().text_color(ink).spin(1600)))
       .when(st === "blocked", el => el.child(image(`mods/paper-agents/stamp-${dark ? "dark" : "light"}.png`).w(67).h(28).flex_none()))
@@ -142,6 +152,7 @@ export default class Pane extends View {
       .on_hover((hovered, cx) => { this.hovered = hovered; cx.notify(); })
       .on_click(() => run("pane.focus", { pane }))
       .when(Boolean(pic), (el) => el.child(pic))
+      .when(Boolean(p.terminal), (el) => el.child(svg(machineIcon(p)).size(16).flex_none().text_color(t.foreground)))
       .child(div().flex_none().truncate().max_w(360).font_medium().text_color(t.foreground).child(name))
       .child(div().flex_1().truncate().text_color(t.dim).child(folder(p.cwd)))
       // Painted: the ink marks, in the theme's colours since the header isn't paper.

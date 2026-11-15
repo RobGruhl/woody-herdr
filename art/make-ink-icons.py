@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # Usage: python3 art/make-ink-icons.py
 #
-# Cuts art/ink-icons/ink-icons-sheet.png, a sheet of 20 brush-painted icons from
-# gpt-image-2.6-sunburst (the prompt is in RECIPE.md), into one SVG per icon in
-# mods/paper-pane/ink/. Each SVG is a single-colour outline, so Herdr tints it with
+# Cuts the sheets of brush-painted icons in art/ink-icons/ (from
+# gpt-image-2.6-sunburst; the prompts are in RECIPE.md) into one SVG per icon in
+# mods/paper-pane/ink/: ink-icons-sheet.png, the 20 interface icons, and
+# machine-icons-sheet.png, the machines a terminal runs on (its second row is a
+# spare take on each, not used). Each SVG is a single-colour outline, so Herdr tints it with
 # the text colour: ink on paper and tape, cream on the wood.
 #
 # The icons aren't on an exact grid, so the sheet is cut at its widest blank bands:
@@ -15,14 +17,21 @@
 import os, re, subprocess, tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SHEET = os.path.join(ROOT, "art", "ink-icons", "ink-icons-sheet.png")
+SHEETS = os.path.join(ROOT, "art", "ink-icons")
 OUT = os.path.join(ROOT, "mods", "paper-pane", "ink")
-NAMES = [
-    ["file", "branch", "layers", "chevron-down", "plus"],
-    ["x", "search", "sidebar", "settings", "eye"],
-    ["split-right", "split-down", "zoom", "unzoom", "pin"],
-    ["terminal", "chevron-right", "monitor", "clock", "folder"],
-]
+# Each sheet's icons, row by row; None leaves that one out.
+ICONS = {
+    "ink-icons-sheet.png": [
+        ["file", "branch", "layers", "chevron-down", "plus"],
+        ["x", "search", "sidebar", "settings", "eye"],
+        ["split-right", "split-down", "zoom", "unzoom", "pin"],
+        ["terminal", "chevron-right", "monitor", "clock", "folder"],
+    ],
+    "machine-icons-sheet.png": [
+        ["laptop", "mini", "phone", "server"],
+        [None, None, None, None],
+    ],
+}
 INK_BELOW = 128     # a pixel darker than this is ink
 MARGIN = 0.09       # blank border round each icon, as a share of the square's side
 SIDE = 512          # the square each icon is traced at
@@ -54,7 +63,7 @@ def bands(filled, parts):
     return [(edges[i], edges[i + 1]) for i in range(0, len(edges), 2)]
 
 
-def main():
+def cut(SHEET, NAMES):
     ink = read_ink(SHEET)
     os.makedirs(OUT, exist_ok=True)
     rows = bands([any(row) for row in ink], len(NAMES))
@@ -62,6 +71,8 @@ def main():
         for (top, bottom), names in zip(rows, NAMES):
             columns = bands([any(ink[y][x] for y in range(top, bottom)) for x in range(len(ink[0]))], len(names))
             for (left, right), name in zip(columns, names):
+                if name is None:
+                    continue
                 # The row's band is as tall as its tallest icon: trim to this icon's own ink.
                 ys = [y for y in range(top, bottom) if any(ink[y][left:right])]
                 y0, y1 = ys[0], ys[-1] + 1
@@ -82,4 +93,5 @@ def main():
                 print(f"{name:14} {w}x{h} at {left},{y0}")
 
 
-main()
+for sheet, names in ICONS.items():
+    cut(os.path.join(SHEETS, sheet), names)
