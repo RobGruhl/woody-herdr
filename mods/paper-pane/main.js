@@ -15,7 +15,7 @@
 
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { panes, props, run, theme, home, settings, exec, appHome, notify } from "herdr";
+import { panes, props, run, theme, home, settings, exec, appHome, notify, shared } from "herdr";
 
 const HAND = "Caveat Brush"; // fonts/CaveatBrush-Regular.ttf
 const TAPE = "#e6d6a2"; // the torn ends, tape-left.png and tape-right.png, are this colour
@@ -41,12 +41,14 @@ function darkish(hex) {
   return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) < 128;
 }
 
-// Where the terminal runs, as a painted icon: this computer is the laptop, a machine
-// named like "mini" or "phone" gets its own, any other is a server. A pane on another
-// machine has that machine's name before a slash in its id.
+// Where the terminal runs, as a painted icon. This computer is the laptop, or the mini
+// if it has no battery (paper-agents finds out and shares it as "machine.local");
+// another machine goes by its name: like "mini", "phone", or "laptop"/"book", else a
+// server. A pane on another machine has that machine's name before a slash in its id.
 function machineIcon(p) {
   const machine = p.pane.includes("/") ? p.pane.split("/")[0] : null;
-  const name = !machine ? "laptop" : /mini/i.test(machine) ? "mini" : /phone/i.test(machine) ? "phone" : "server";
+  const name = !machine ? (shared("machine.local") === "mini" ? "mini" : "laptop")
+    : /mini/i.test(machine) ? "mini" : /phone/i.test(machine) ? "phone" : /laptop|book/i.test(machine) ? "laptop" : "server";
   return `mods/paper-pane/ink/${name}.svg`;
 }
 

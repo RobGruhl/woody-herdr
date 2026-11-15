@@ -10,7 +10,7 @@
 
 import { View, div, image, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { agents, terminals, panes, focused, spaces, run, theme, shared, setShared, setAgentOrder, openOverlay, closeOverlay, props, window, layout, settings } from "herdr";
+import { agents, terminals, panes, focused, spaces, run, theme, shared, setShared, setAgentOrder, openOverlay, closeOverlay, props, window, layout, settings, exec } from "herdr";
 
 // The cards' type: headings in a printer's small caps, notes in a pencil hand.
 // Both fonts are in mods/paper-pane/fonts.
@@ -22,9 +22,12 @@ const inkOf = (id) => INKS[[...String(id ?? "")].reduce((h, ch) => (h * 31 + ch.
 // How dark a working agent's ring is: thin ink at first, full after a quarter of an hour.
 // Brush-painted icons for the cards (mods/paper-pane/ink), in place of Herdr's line icons.
 const INK = "mods/paper-pane/ink";
-// Where a terminal runs, as a painted icon under its program's: this computer is the
-// laptop, a machine named like "mini" or "phone" gets its own, any other is a server.
-const machineIcon = (machine) => `${INK}/${!machine ? "laptop" : /mini/i.test(machine) ? "mini" : /phone/i.test(machine) ? "phone" : "server"}.svg`;
+// Where a terminal runs, as a painted icon under its program's. This computer is the
+// laptop, or the mini if it has no battery (init() finds out and shares it as
+// "machine.local"); another machine goes by its name: like "mini", "phone", or
+// "laptop"/"book", else a server.
+const machineIcon = (machine) => `${INK}/${!machine ? (shared("machine.local") === "mini" ? "mini" : "laptop")
+  : /mini/i.test(machine) ? "mini" : /phone/i.test(machine) ? "phone" : /laptop|book/i.test(machine) ? "laptop" : "server"}.svg`;
 const stacked = (pic, machine, color) => v_flex().flex_none().items_center().gap(2)
   .when(Boolean(pic), (el) => el.child(pic))
   .child(svg(machineIcon(machine)).size(14).flex_none().text_color(color));
@@ -104,6 +107,12 @@ function icon(p, size, color) {
 export default class Agents extends View {
   init(_props, cx) {
     if (props()?.sortMenu) return;
+    // Is this computer a laptop or a desktop? A Mac with no battery is drawn as the mini.
+    // Shared, so the pane headers (paper-pane) draw the same icon.
+    exec("pmset", ["-g", "batt"]).then((r) => {
+      const local = r.code === 0 && !r.stdout.includes("InternalBattery") ? "mini" : "laptop";
+      if (shared("machine.local") !== local) setShared("machine.local", local);
+    }).catch(() => {});
     this.folded = new Set();
     // Each agent's last state and when it changed (ms), kept across restarts.
     this.changed = JSON.parse(localStorage.getItem("changed") ?? "{}");
